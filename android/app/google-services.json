@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "480743723770",
+    "project_id": "neural-canvas-ad9db",
+    "storage_bucket": "neural-canvas-ad9db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480743723770:android:603c533dd5e366d2736f43",
+        "android_client_info": {
+          "package_name": "com.example.neuralcanvas.neural_canvas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA01aKlXsEuFys5Jk20rCA-SCekfOcPvxg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

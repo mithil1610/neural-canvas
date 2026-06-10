@@ -7,7 +7,9 @@ import 'package:neural_canvas/ui/tabs/chat_tab.dart';
 import 'package:neural_canvas/ui/tabs/graph_tab.dart';
 import 'package:neural_canvas/ui/tabs/home_tab.dart';
 import 'package:neural_canvas/ui/tabs/search_tab.dart';
+import 'package:neural_canvas/screens/chat_history_screen.dart';
 import 'package:neural_canvas/services/share_receiver_service.dart';
+import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -85,11 +87,19 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
-  final List<Widget> _tabs = const [
-    HomeTab(),
-    SearchTab(),
-    GraphTab(),
-    ChatTab(),
+  List<Widget> get _tabs => [
+    const HomeTab(),
+    const SearchTab(),
+    const GraphTab(),
+    ChatHistoryScreen(
+      onSessionSelected: (sessionId) {
+        AiService().loadSession(sessionId);
+        setState(() {
+          _currentIndex = 4;
+        });
+      },
+    ),
+    const ChatTab(),
   ];
 
   @override
@@ -158,6 +168,11 @@ class _MainShellState extends State<MainShell> {
                   color: Color(0xFF818CF8),
                 ),
                 label: 'Graph',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history, color: Color(0xFF818CF8)),
+                label: 'History',
               ),
               NavigationDestination(
                 icon: Icon(Icons.chat_bubble_outline),

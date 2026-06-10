@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 
 class AiService {
@@ -14,6 +16,8 @@ class AiService {
       isAssistant: true,
     )
   ]);
+
+  String? currentSessionId;
 
   AiService._internal();
 
@@ -106,11 +110,48 @@ class AiService {
   }
 
   void clearHistory() {
+    currentSessionId = null;
     chatHistory.value = [
       const ChatMessage(
         text: 'Hello! I am your Digital Memory Assistant. How can I help you explore your canvas today?',
         isAssistant: true,
       )
     ];
+  }
+
+  Future<void> loadSession(String sessionId) async {
+    currentSessionId = sessionId;
+    chatHistory.value = [];
+    
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chat_sessions')
+          .doc(sessionId)
+          .collection('messages')
+          .orderBy('timestamp', descending: false)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        clearHistory();
+        return;
+      }
+
+      chatHistory.value = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return ChatMessage(
+          text: data['text'] ?? '',
+          isAssistant: data['isAssistant'] ?? false,
+          isSystem: data['isSystem'] ?? false,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint("Error loading session: $e");
+      clearHistory();
+    }
   }
 }

@@ -1,0 +1,6 @@
+workflows:
+  ios-workflow:
+    scripts:
+      - name: Flutter pub get (Post-clone)
+        script: |
+          flutter pub get

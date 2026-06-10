@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '480743723770',
     projectId: 'neural-canvas-ad9db',
     storageBucket: 'neural-canvas-ad9db.firebasestorage.app',
-    iosBundleId: 'com.example.neuralcanvas.neuralCanvas',
+    iosBundleId: 'com.mithil.neuralcanvas',
   );
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAPezOwtB__CwMCJNASmVgpGHJpZzcuWts',
@@ -71,7 +71,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '480743723770',
     projectId: 'neural-canvas-ad9db',
     storageBucket: 'neural-canvas-ad9db.firebasestorage.app',
-    iosBundleId: 'com.example.neuralcanvas.neuralCanvas',
+    iosBundleId: 'com.mithil.neuralcanvas',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

@@ -1,4 +1,4 @@
-package com.example.neuralcanvas.neural_canvas
+package com.mithil.neuralcanvas
 
 import io.flutter.embedding.android.FlutterActivity
 

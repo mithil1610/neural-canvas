@@ -52,25 +52,27 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyA01aKlXsEuFys5Jk20rCA-SCekfOcPvxg',
-    appId: '1:480743723770:android:603c533dd5e366d2736f43',
+    appId: '1:480743723770:android:5ef953732384abae736f43',
     messagingSenderId: '480743723770',
     projectId: 'neural-canvas-ad9db',
     storageBucket: 'neural-canvas-ad9db.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAPezOwtB__CwMCJNASmVgpGHJpZzcuWts',
-    appId: '1:480743723770:ios:6af52b60ea1bd3b4736f43',
+    appId: '1:480743723770:ios:6f6944ab614c599c736f43',
     messagingSenderId: '480743723770',
     projectId: 'neural-canvas-ad9db',
     storageBucket: 'neural-canvas-ad9db.firebasestorage.app',
+    iosClientId: '480743723770-qivbe57h69p42p8eg67vlg9o4dggas3f.apps.googleusercontent.com',
     iosBundleId: 'com.mithil.neuralcanvas',
   );
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAPezOwtB__CwMCJNASmVgpGHJpZzcuWts',
-    appId: '1:480743723770:ios:6af52b60ea1bd3b4736f43',
+    appId: '1:480743723770:ios:6f6944ab614c599c736f43',
     messagingSenderId: '480743723770',
     projectId: 'neural-canvas-ad9db',
     storageBucket: 'neural-canvas-ad9db.firebasestorage.app',
+    iosClientId: '480743723770-qivbe57h69p42p8eg67vlg9o4dggas3f.apps.googleusercontent.com',
     iosBundleId: 'com.mithil.neuralcanvas',
   );
 

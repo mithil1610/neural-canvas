@@ -9,10 +9,15 @@
       "client_info": {
         "mobilesdk_app_id": "1:480743723770:android:603c533dd5e366d2736f43",
         "android_client_info": {
-          "package_name": "com.mithil.neuralcanvas"
+          "package_name": "com.example.neuralcanvas.neural_canvas"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "480743723770-db6b2b62qijtc6uijmcmsnocs8g2tr64.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA01aKlXsEuFys5Jk20rCA-SCekfOcPvxg"
@@ -20,7 +25,55 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "480743723770-db6b2b62qijtc6uijmcmsnocs8g2tr64.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "480743723770-ocv4notilg4bjv4ed0cm4iuhi013h4nh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.neuralcanvas.neuralCanvas"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480743723770:android:5ef953732384abae736f43",
+        "android_client_info": {
+          "package_name": "com.mithil.neuralcanvas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "480743723770-db6b2b62qijtc6uijmcmsnocs8g2tr64.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA01aKlXsEuFys5Jk20rCA-SCekfOcPvxg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "480743723770-db6b2b62qijtc6uijmcmsnocs8g2tr64.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "480743723770-ocv4notilg4bjv4ed0cm4iuhi013h4nh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.neuralcanvas.neuralCanvas"
+              }
+            }
+          ]
         }
       }
     }

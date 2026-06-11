@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:neural_canvas/services/decomposition_service.dart';
@@ -10,10 +11,11 @@ class ShareReceiverService {
   factory ShareReceiverService() => _instance;
   ShareReceiverService._internal();
 
-  late StreamSubscription _intentDataStreamSubscription;
+  StreamSubscription? _intentDataStreamSubscription;
   final DecompositionService _decompositionService = DecompositionService();
 
   void initialize(GlobalKey<NavigatorState> navigatorKey) {
+    if (kIsWeb) return; // Web does not support receive_sharing_intent
     // 1. For handling media files shared while the app is already open in the background.
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       _processSharedFiles(value, navigatorKey);
@@ -28,7 +30,7 @@ class ShareReceiverService {
   }
 
   void dispose() {
-    _intentDataStreamSubscription.cancel();
+    _intentDataStreamSubscription?.cancel();
   }
 
   Future<void> _processSharedFiles(List<SharedMediaFile> files, GlobalKey<NavigatorState> navigatorKey) async {

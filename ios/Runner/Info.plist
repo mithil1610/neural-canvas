@@ -17,6 +17,12 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Neural Canvas requires access to the camera to process and capture images.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Neural Canvas requires access to the photo library to process shared media.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Neural Canvas requires access to the microphone for video features.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

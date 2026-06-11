@@ -8,6 +8,13 @@ runner_target.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
 end
 
+# Auto-link GoogleService-Info.plist
+runner_group = project.main_group.find_subpath(File.join('Runner'), true)
+gs_plist = runner_group.files.find { |f| f.path == 'GoogleService-Info.plist' } || runner_group.new_file('GoogleService-Info.plist')
+if !runner_target.resources_build_phase.files_references.include?(gs_plist)
+  runner_target.resources_build_phase.add_file_reference(gs_plist)
+end
+
 # Check if target already exists to prevent duplication
 if project.targets.any? { |t| t.name == 'ShareExtension' }
   puts "ShareExtension already exists. Saving entitlements and exiting."

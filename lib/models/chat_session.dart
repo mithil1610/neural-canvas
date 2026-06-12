@@ -15,7 +15,7 @@ class ChatSession {
     return ChatSession(
       id: id,
       lastMessage: data['lastMessage'] ?? '',
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

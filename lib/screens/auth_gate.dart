@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:neural_canvas/main.dart' show MainShell;
 
 class AuthGate extends StatefulWidget {
@@ -23,16 +24,26 @@ class _AuthGateState extends State<AuthGate> {
     });
 
     try {
+      UserCredential userCredential;
       if (_isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
       } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+      }
+
+      // Verify and create the base user profile document
+      if (userCredential.user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+          'email': userCredential.user!.email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastLoginAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

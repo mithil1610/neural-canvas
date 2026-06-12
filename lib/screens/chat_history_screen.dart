@@ -30,8 +30,8 @@ class ChatHistoryScreen extends StatelessWidget {
     final query = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .collection('chat_sessions')
-        .orderBy('updatedAt', descending: true);
+        .collection('chats')
+        .orderBy('createdAt', descending: true);
 
     return Scaffold(
       backgroundColor: Colors.transparent,

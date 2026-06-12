@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/models/chat_message.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -60,6 +66,71 @@ class _ChatTabState extends State<ChatTab> {
     _focusNode.requestFocus();
   }
 
+  Future<void> _handleAttachment() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.media,
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please sign in to upload media.')),
+        );
+        return;
+      }
+
+      // Show uploading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uploading attachment...')),
+      );
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = file.name;
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('users/${user.uid}/uploads/${timestamp}_$fileName');
+
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = storageRef.putData(file.bytes!);
+      } else {
+        uploadTask = storageRef.putFile(File(file.path!));
+      }
+
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Append directly to Firestore as requested
+      if (_aiService.currentSessionId != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('chats')
+            .doc(_aiService.currentSessionId)
+            .collection('messages')
+            .add({
+          'text': 'Attachment: $downloadUrl',
+          'isAssistant': false,
+          'isSystem': false,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      // Also add to local UI state so the user sees it
+      _aiService.sendUserMessage('Attachment: $downloadUrl');
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,7 +184,7 @@ class _ChatTabState extends State<ChatTab> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () {},
+                    onPressed: _handleAttachment,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 8),

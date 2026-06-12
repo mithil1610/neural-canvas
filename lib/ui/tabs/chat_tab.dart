@@ -177,6 +177,18 @@ class _ChatTabState extends State<ChatTab> {
         .collection('messages')
         .add(payload);
 
+    // 1.5 Fetch Knowledge Base for RAG
+    var knowledgeSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('knowledge_base')
+        .get();
+        
+    String retrievedContext = knowledgeSnapshot.docs.map((d) {
+      final data = d.data();
+      return "- ${data['fileName']}: ${data['aiSummary']}";
+    }).join("\n");
+
     // 2. Fetch last 5 messages for context
     final historySnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -197,7 +209,7 @@ class _ChatTabState extends State<ChatTab> {
       if (doc.id == userMessageRef.id) {
         final List<Part> parts = [];
         if (trimmedText.isNotEmpty) {
-          parts.add(TextPart(trimmedText));
+          parts.add(TextPart("You are the Neural Canvas AI Second Brain. Answer the user's prompt using exclusively these verified facts from their personal knowledge base library:\n[CONTEXT:\n$retrievedContext\n].\n\nUser Question: $trimmedText"));
         } else if (messageType != 'text') {
           parts.add(TextPart("I have attached a $messageType."));
         }

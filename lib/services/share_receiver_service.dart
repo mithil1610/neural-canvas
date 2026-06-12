@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'package:neural_canvas/services/decomposition_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 import 'package:neural_canvas/main.dart';
 
@@ -13,7 +16,6 @@ class ShareReceiverService {
   ShareReceiverService._internal();
 
   StreamSubscription? _intentDataStreamSubscription;
-  final DecompositionService _decompositionService = DecompositionService();
 
   void initialize(GlobalKey<NavigatorState> navigatorKey) {
     if (kIsWeb) return; // Web does not support receive_sharing_intent
@@ -36,44 +38,66 @@ class ShareReceiverService {
 
   Future<void> _processSharedFiles(List<SharedMediaFile> files, GlobalKey<NavigatorState> navigatorKey) async {
     if (files.isEmpty) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     for (var file in files) {
       final path = file.path;
 
-      String fileType = 'unknown';
+      // Extract file name and extension
+      String fileName = path.split('/').last;
+      String ext = 'unknown';
+      if (fileName.contains('.')) {
+        ext = fileName.split('.').last.toLowerCase();
+      }
+
       AiProcessingType aiType = AiProcessingType.unknown;
 
       if (file.type == SharedMediaType.image) {
-        fileType = 'image';
         aiType = AiProcessingType.image;
       } else if (file.type == SharedMediaType.video) {
-        fileType = 'video';
         aiType = AiProcessingType.video;
       } else if (file.type == SharedMediaType.file) {
-        if (path.toLowerCase().endsWith('.pdf')) {
-          fileType = 'pdf';
+        if (ext == 'pdf') {
           aiType = AiProcessingType.pdf;
         } else {
-          fileType = 'document';
           aiType = AiProcessingType.text;
         }
       } else if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
-        fileType = 'text';
         aiType = AiProcessingType.text;
       }
 
-      // Transition user immediately to Chat Tab scratchpad
-      globalTabController.value = 4;
+      // Transition user immediately to Knowledge Base Tab (Index 1)
+      globalTabController.value = 1;
 
       // Activate the global overlay immediately before processing
       globalAiProcessingState.value = AiProcessingData(aiType);
 
       try {
-        final analysis = await _decompositionService.analyzeSharedAsset(
-          filePath: path,
-          fileType: fileType,
-        );
-        debugPrint("Analysis completed for $path: $analysis");
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+
+        final uploadTask = storageRef.putFile(File(path));
+        final snapshot = await uploadTask;
+        final mediaUrl = await snapshot.ref.getDownloadURL();
+
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('knowledge_base')
+            .doc();
+
+        await docRef.set({
+          'fileName': fileName,
+          'fileUrl': mediaUrl,
+          'fileType': ext,
+          'uploadedAt': FieldValue.serverTimestamp(),
+          'aiSummary': 'Processing data...',
+        });
+        
+        debugPrint("Share intent upload completed for $fileName");
       } catch (e) {
         debugPrint("Error analyzing shared asset: $e");
       }

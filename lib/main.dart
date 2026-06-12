@@ -3,10 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
-import 'package:neural_canvas/ui/tabs/chat_tab.dart';
+import 'package:neural_canvas/ui/screens/knowledge_base_screen.dart';
 import 'package:neural_canvas/ui/tabs/graph_tab.dart';
 import 'package:neural_canvas/ui/tabs/home_tab.dart';
-import 'package:neural_canvas/ui/tabs/search_tab.dart';
+import 'package:neural_canvas/ui/tabs/chat_tab.dart';
 import 'package:neural_canvas/screens/chat_history_screen.dart';
 import 'package:neural_canvas/services/share_receiver_service.dart';
 import 'package:neural_canvas/services/ai_service.dart';
@@ -100,7 +100,7 @@ class _MainShellState extends State<MainShell> {
 
   List<Widget> get _tabs => [
     const HomeTab(),
-    const SearchTab(),
+    const KnowledgeBaseScreen(),
     const GraphTab(),
     ChatHistoryScreen(
       onSessionSelected: (sessionId) {
@@ -169,9 +169,9 @@ class _MainShellState extends State<MainShell> {
                 label: 'Home',
               ),
               NavigationDestination(
-                icon: Icon(Icons.search),
-                selectedIcon: Icon(Icons.search, color: Color(0xFF818CF8)),
-                label: 'Search',
+                icon: Icon(Icons.inventory_2_outlined),
+                selectedIcon: Icon(Icons.inventory_2, color: Color(0xFF818CF8)),
+                label: 'Library',
               ),
               NavigationDestination(
                 icon: Icon(Icons.account_tree_outlined),

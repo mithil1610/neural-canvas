@@ -46,7 +46,7 @@ class DecompositionService {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        storagePath = 'uploads/${user.uid}/${timestamp}_$fileName';
+        storagePath = 'users/${user.uid}/uploads/${timestamp}_$fileName';
         
         final ref = FirebaseStorage.instance.ref().child(storagePath);
         final metadata = SettableMetadata(contentType: mimeType);

@@ -68,7 +68,7 @@ class _ChatTabState extends State<ChatTab> {
 
   Future<void> _handleAttachment() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.media,
         allowMultiple: false,
       );
@@ -77,6 +77,7 @@ class _ChatTabState extends State<ChatTab> {
       final file = result.files.first;
 
       final user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please sign in to upload media.')),
@@ -125,6 +126,7 @@ class _ChatTabState extends State<ChatTab> {
       _aiService.sendUserMessage('Attachment: $downloadUrl');
       
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Upload failed: $e')),
       );

@@ -8,6 +8,7 @@ import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -217,16 +218,74 @@ class _ChatTabState extends State<ChatTab> {
           Expanded(
             child: ValueListenableBuilder<List<ChatMessage>>(
               valueListenable: _aiService.chatHistory,
-              builder: (context, messages, child) {
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: _buildMessageBubble(context, msg),
+              builder: (context, localMessages, child) {
+                final user = FirebaseAuth.instance.currentUser;
+                final activeChatId = _aiService.currentSessionId;
+                
+                // 1. If we have no active chat yet, just show the local welcome message
+                if (user == null || activeChatId == null) {
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: localMessages.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: _buildLegacyBubble(context, localMessages[index]),
+                      );
+                    },
+                  );
+                }
+
+                // 2. StreamBuilder to read from Firestore directly
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .collection('chats')
+                      .doc(activeChatId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Error loading chat'));
+                    }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final docs = snapshot.data?.docs ?? [];
+                    
+                    // The streaming AI message (if any) should be at index 0 (the bottom) since we are using reverse: true
+                    final streamingMessage = localMessages.where((m) => m.isStreaming).lastOrNull;
+                    
+                    final itemCount = docs.length + (streamingMessage != null ? 1 : 0);
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true, // As requested, build from bottom up
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        // Render the hybrid local streaming message at the absolute bottom
+                        if (streamingMessage != null && index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: _buildLegacyBubble(context, streamingMessage),
+                          );
+                        }
+                        
+                        // Shift index if streaming message exists
+                        final docIndex = streamingMessage != null ? index - 1 : index;
+                        final docData = docs[docIndex].data() as Map<String, dynamic>;
+                        
+                        // We use top padding instead of bottom because the list is reversed
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 16.0), 
+                          child: _buildStreamBubble(context, docData),
+                        );
+                      },
                     );
                   },
                 );
@@ -338,7 +397,88 @@ class _ChatTabState extends State<ChatTab> {
     );
   }
 
-  Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
+  Widget _buildStreamBubble(BuildContext context, Map<String, dynamic> data) {
+    final role = data['role'] ?? 'user';
+    final type = data['type'] ?? 'text';
+    final content = data['content'] ?? '';
+    final mediaUrl = data['mediaUrl'];
+    final isAssistant = role == 'ai' || role == 'assistant' || role == 'system';
+
+    final bgColor = isAssistant
+        ? Theme.of(context).colorScheme.surfaceContainerHighest
+        : Theme.of(context).colorScheme.primary;
+    final textColor = isAssistant
+        ? Theme.of(context).colorScheme.onSurface
+        : Theme.of(context).colorScheme.onPrimary;
+    final alignment = isAssistant ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+    final borderRadius = BorderRadius.only(
+      topLeft: const Radius.circular(20),
+      topRight: const Radius.circular(20),
+      bottomLeft: isAssistant ? const Radius.circular(4) : const Radius.circular(20),
+      bottomRight: isAssistant ? const Radius.circular(20) : const Radius.circular(4),
+    );
+
+    return Column(
+      crossAxisAlignment: alignment,
+      children: [
+        Container(
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: borderRadius,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Render Media (Image or Mixed)
+              if (type == 'image' || type == 'mixed') ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: type == 'mixed' ? mediaUrl : content,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const SizedBox(
+                      width: 150,
+                      height: 150,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => const SizedBox(
+                      width: 150,
+                      height: 150,
+                      child: Center(child: Icon(Icons.error)),
+                    ),
+                  ),
+                ),
+                if (type == 'mixed' && content.toString().isNotEmpty) const SizedBox(height: 8),
+              ],
+              
+              // Render Text Content
+              if (type == 'text' || type == 'mixed' || type == 'file')
+                MarkdownBody(
+                  data: type == 'mixed' ? content : (type == 'file' ? 'Attached file: $content' : content),
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(color: textColor, fontSize: 16),
+                    code: TextStyle(
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontFamily: 'monospace',
+                    ),
+                    codeblockPadding: const EdgeInsets.all(8),
+                    codeblockDecoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegacyBubble(BuildContext context, ChatMessage message) {
     if (message.isSystem) {
       return Center(
         child: Container(

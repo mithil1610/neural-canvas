@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class KnowledgeBaseScreen extends StatefulWidget {
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _selectedFilter = 'All'; // Filters: All, Documents, Images, Audio
 
   @override
   void dispose() {
@@ -48,15 +50,12 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     IconData iconData;
     Color iconColor;
 
-    if (fileType == 'pdf') {
-      iconData = Icons.picture_as_pdf;
-      iconColor = Colors.redAccent;
+    if (fileType == 'pdf' || fileType == 'doc' || fileType == 'docx' || fileType == 'txt') {
+      iconData = fileType == 'pdf' ? Icons.picture_as_pdf : Icons.description;
+      iconColor = fileType == 'pdf' ? Colors.redAccent : Colors.blueAccent;
     } else if (fileType == 'mp3' || fileType == 'm4a' || fileType == 'wav') {
       iconData = Icons.graphic_eq;
       iconColor = Colors.deepPurpleAccent;
-    } else if (fileType == 'doc' || fileType == 'docx' || fileType == 'txt') {
-      iconData = Icons.description;
-      iconColor = Colors.blueAccent;
     } else {
       iconData = Icons.insert_drive_file;
       iconColor = Colors.grey;
@@ -73,6 +72,88 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     );
   }
 
+  void _showActionModal(BuildContext context, String docId, String fileName, String fileUrl) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cs.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Text(
+                    fileName,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Icon(Icons.visibility, color: cs.primary),
+                  title: const Text('View File'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('View File not implemented yet')));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.edit, color: cs.primary),
+                  title: const Text('Rename Source'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rename Source not implemented yet')));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete, color: cs.error),
+                  title: Text('Delete Asset', style: TextStyle(color: cs.error)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _deleteAsset(docId, fileUrl);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAsset(String docId, String fileUrl) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    try {
+      if (fileUrl.isNotEmpty) {
+        await FirebaseStorage.instance.refFromURL(fileUrl).delete();
+      }
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .doc(docId)
+          .delete();
+          
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset deleted')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete asset: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -86,6 +167,23 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
         ),
       );
     }
+
+    // Build the dynamic query
+    Query query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('knowledge_base');
+
+    if (_selectedFilter == 'Documents') {
+      query = query.where('fileType', whereIn: ['pdf', 'doc', 'docx', 'txt']);
+    } else if (_selectedFilter == 'Images') {
+      query = query.where('fileType', whereIn: ['png', 'jpeg', 'jpg']);
+    } else if (_selectedFilter == 'Audio') {
+      query = query.where('fileType', whereIn: ['mp3', 'm4a', 'wav']);
+    }
+    
+    // Sort after filtering
+    query = query.orderBy('uploadedAt', descending: true);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -150,17 +248,47 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Filter Chips Row
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: ['All', 'Documents', 'Images', 'Audio'].map((filter) {
+                  final isSelected = _selectedFilter == filter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(filter),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                      },
+                      backgroundColor: cs.surfaceContainerHighest,
+                      selectedColor: cs.primaryContainer,
+                      labelStyle: TextStyle(
+                        color: isSelected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      side: BorderSide(
+                        color: isSelected ? cs.primary : cs.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Stream Builder List
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('knowledge_base')
-                    .orderBy('uploadedAt', descending: true)
-                    .snapshots(),
+                stream: query.snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(child: Text('Error loading library.', style: TextStyle(color: cs.onSurface)));
@@ -200,6 +328,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
+                      final docId = filteredDocs[index].id;
                       final data = filteredDocs[index].data() as Map<String, dynamic>;
                       final fileName = data['fileName'] ?? 'Untitled';
                       final fileType = data['fileType'] ?? 'unknown';
@@ -219,6 +348,13 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                           color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -226,7 +362,10 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
-                              // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening $fileName...')));
+                               // Open viewer logic later
+                            },
+                            onLongPress: () {
+                               _showActionModal(context, docId, fileName, fileUrl);
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(14),

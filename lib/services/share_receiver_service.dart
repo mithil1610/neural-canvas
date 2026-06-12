@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
+import 'package:neural_canvas/services/asset_analyzer_service.dart';
 import 'package:neural_canvas/main.dart';
 
 class ShareReceiverService {
@@ -96,6 +97,9 @@ class ShareReceiverService {
           'uploadedAt': FieldValue.serverTimestamp(),
           'aiSummary': 'Processing data...',
         });
+        
+        // Fire the asynchronous analyzer immediately
+        AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
         
         debugPrint("Share intent upload completed for $fileName");
       } catch (e) {

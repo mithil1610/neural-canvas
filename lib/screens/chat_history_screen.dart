@@ -19,6 +19,40 @@ class ChatHistoryScreen extends StatelessWidget {
     return "just now";
   }
 
+  void _showEditTitleDialog(BuildContext context, DocumentReference docRef, String currentTitle) {
+    final TextEditingController controller = TextEditingController(text: currentTitle);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Chat Title'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'Enter custom name...'),
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final newText = controller.text.trim();
+                if (newText.isNotEmpty) {
+                  docRef.update({'title': newText});
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -82,7 +116,23 @@ class ChatHistoryScreen extends StatelessWidget {
                   child: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
                 onDismissed: (_) {
-                  doc.reference.delete();
+                  final chatData = doc.data() as Map<String, dynamic>;
+                  final chatRef = doc.reference;
+                  chatRef.delete();
+                  
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Chat deleted'),
+                      duration: const Duration(seconds: 3),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        onPressed: () {
+                          chatRef.set(chatData);
+                        },
+                      ),
+                    ),
+                  );
                 },
                 child: Card(
                   color: Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -103,7 +153,9 @@ class ChatHistoryScreen extends StatelessWidget {
                       ),
                     ),
                     title: Text(
-                      session.lastMessage.isEmpty ? "New Conversation" : session.lastMessage,
+                      session.title?.isNotEmpty == true 
+                          ? session.title! 
+                          : (session.lastMessage.isEmpty ? "New Conversation" : session.lastMessage),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w500),
@@ -119,6 +171,12 @@ class ChatHistoryScreen extends StatelessWidget {
                       ),
                     ),
                     onTap: () => onSessionSelected(session.id),
+                    trailing: IconButton(
+                      icon: Icon(Icons.edit, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                      onPressed: () {
+                        _showEditTitleDialog(context, doc.reference, session.title ?? "");
+                      },
+                    ),
                   ),
                 ),
               );

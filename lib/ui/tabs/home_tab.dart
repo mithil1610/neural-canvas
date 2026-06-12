@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:neural_canvas/services/asset_analyzer_service.dart';
 
 // --- Data Models ---
 
@@ -325,6 +326,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         'uploadedAt': FieldValue.serverTimestamp(),
         'aiSummary': 'Processing data...',
       });
+
+      // Fire the asynchronous analyzer immediately
+      AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

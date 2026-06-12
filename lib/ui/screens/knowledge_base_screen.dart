@@ -296,9 +296,13 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                     // Chip filter
                     final type = (data['fileType'] ?? '').toString().toLowerCase();
                     bool chipMatches = true;
-                    if (_selectedFilter == "Images") chipMatches = ['png', 'jpg', 'jpeg'].contains(type);
-                    else if (_selectedFilter == "Documents") chipMatches = ['pdf', 'doc', 'docx', 'txt'].contains(type);
-                    else if (_selectedFilter == "Audio") chipMatches = ['mp3', 'm4a', 'wav'].contains(type);
+                    if (_selectedFilter == "Images") {
+                      chipMatches = ['png', 'jpg', 'jpeg'].contains(type);
+                    } else if (_selectedFilter == "Documents") {
+                      chipMatches = ['pdf', 'doc', 'docx', 'txt'].contains(type);
+                    } else if (_selectedFilter == "Audio") {
+                      chipMatches = ['mp3', 'm4a', 'wav'].contains(type);
+                    }
                     
                     if (!chipMatches) return false;
 
@@ -317,7 +321,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                           Icon(Icons.inventory_2_outlined, size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.3)),
                           const SizedBox(height: 16),
                           Text(
-                            docs.isEmpty ? 'Your library is empty' : 'No matching assets found',
+                            allDocs.isEmpty ? 'Your library is empty' : 'No matching assets found',
                             style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
                           ),
                         ],

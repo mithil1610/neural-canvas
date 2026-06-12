@@ -7,8 +7,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -155,7 +157,7 @@ class _ChatTabState extends State<ChatTab> {
         .set({'createdAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
 
     // Push the payload into the messages sub-collection
-    await FirebaseFirestore.instance
+    final userMessageRef = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('chats')
@@ -163,15 +165,109 @@ class _ChatTabState extends State<ChatTab> {
         .collection('messages')
         .add(payload);
 
-    // 2. Fallback to trigger the AI backend so the chat actually progresses
-    if (mediaUrl != null) {
-      _aiService.sendSystemContext(
-        trimmedText.isNotEmpty ? trimmedText : "I have attached a $messageType.", 
-        mediaPath: mediaUrl, 
-        mediaType: messageType,
-      );
-    } else {
-      _aiService.sendUserMessage(trimmedText);
+    // 2. Fetch last 5 messages for context
+    final historySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('chats')
+        .doc(activeChatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(6)
+        .get();
+
+    final List<Content> promptContents = [];
+    for (var doc in historySnapshot.docs.reversed) {
+      final data = doc.data();
+      final role = data['role'] == 'ai' ? 'model' : 'user';
+      final text = data['content'] as String? ?? '';
+
+      if (doc.id == userMessageRef.id) {
+        final List<Part> parts = [];
+        if (trimmedText.isNotEmpty) {
+          parts.add(TextPart(trimmedText));
+        } else if (messageType != 'text') {
+          parts.add(TextPart("I have attached a $messageType."));
+        }
+
+        if (attachment != null) {
+          Uint8List? fileBytes;
+          if (kIsWeb) {
+            fileBytes = attachment.bytes;
+          } else {
+            fileBytes = File(attachment.path!).readAsBytesSync();
+          }
+
+          if (fileBytes != null) {
+            final ext = attachment.extension?.toLowerCase() ?? '';
+            String mimeType = 'image/jpeg';
+            if (ext == 'png') {
+              mimeType = 'image/png';
+            } else if (ext == 'pdf') {
+              mimeType = 'application/pdf';
+            }
+            parts.add(DataPart(mimeType, fileBytes));
+          }
+        }
+        promptContents.add(Content(role, parts));
+      } else {
+        if (text.isNotEmpty && data['type'] == 'text') {
+          promptContents.add(Content(role, [TextPart(text)]));
+        } else if (data['type'] == 'mixed' && data['content'] != null) {
+          promptContents.add(Content(role, [TextPart(text)]));
+        } else if (data['type'] == 'image') {
+          promptContents.add(Content(role, [TextPart("[User attached an image]")]));
+        }
+      }
+    }
+
+    final apiKey = const String.fromEnvironment('GEMINI_API_KEY');
+    if (apiKey.isEmpty) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc(activeChatId).collection('messages').add({
+        'senderId': 'system',
+        'role': 'ai',
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'text',
+        'content': 'Error: GEMINI_API_KEY is not configured in the environment. Please rebuild with --dart-define=GEMINI_API_KEY=...',
+      });
+      _focusNode.requestFocus();
+      return;
+    }
+
+    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+
+    try {
+      final responseStream = model.generateContentStream(promptContents);
+
+      final aiMessageRef = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chats')
+          .doc(activeChatId)
+          .collection('messages')
+          .add({
+        'senderId': 'system',
+        'role': 'ai',
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'text',
+        'content': '',
+      });
+
+      String fullResponse = '';
+      await for (final chunk in responseStream) {
+        if (chunk.text != null) {
+          fullResponse += chunk.text!;
+          await aiMessageRef.update({'content': fullResponse});
+        }
+      }
+    } catch (e) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc(activeChatId).collection('messages').add({
+        'senderId': 'system',
+        'role': 'ai',
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'text',
+        'content': 'Error generating response: $e',
+      });
     }
 
     _focusNode.requestFocus();

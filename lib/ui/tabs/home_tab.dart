@@ -6,9 +6,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/main.dart';
 import 'package:neural_canvas/services/ai_service.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 // --- Data Models ---
 
@@ -302,7 +304,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final fileName = file.name;
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('users/${user.uid}/uploads/${timestamp}_$fileName');
+          .child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
 
       UploadTask uploadTask;
       if (kIsWeb) {
@@ -313,43 +315,26 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
       final snapshot = await uploadTask;
       final mediaUrl = await snapshot.ref.getDownloadURL();
+      final ext = file.extension?.toLowerCase() ?? 'unknown';
 
-      final ext = file.extension?.toLowerCase();
-      final messageType = (ext == 'pdf' || ext == 'doc' || ext == 'txt') ? 'file' : 'image';
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .doc();
 
-      final payload = <String, dynamic>{
-        'senderId': user.uid,
-        'role': 'user',
-        'timestamp': FieldValue.serverTimestamp(),
-        'type': messageType,
-        'content': mediaUrl,
+      await docRef.set({
         'fileName': fileName,
-      };
-
-      String activeChatId = _aiService.currentSessionId ?? 
-          FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc().id;
-      
-      _aiService.currentSessionId = activeChatId;
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(activeChatId)
-          .set({'createdAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(activeChatId)
-          .collection('messages')
-          .add(payload);
-
-      _aiService.sendSystemContext("I have attached a $messageType.", mediaPath: mediaUrl, mediaType: messageType);
+        'fileUrl': mediaUrl,
+        'fileType': ext,
+        'uploadedAt': FieldValue.serverTimestamp(),
+        'aiSummary': 'Processing data...',
+      });
 
       if (mounted) {
-        globalTabController.value = 4;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Asset successfully ingested into your Second Brain!')),
+        );
       }
     } catch (e) {
       if (mounted) {

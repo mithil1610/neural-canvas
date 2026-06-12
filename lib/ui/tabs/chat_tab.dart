@@ -186,7 +186,7 @@ class _ChatTabState extends State<ChatTab> {
         
     String retrievedContext = knowledgeSnapshot.docs.map((d) {
       final data = d.data();
-      return "- ${data['fileName']}: ${data['aiSummary']}";
+      return "Document Source [Name: ${data['fileName']}]: ${data['aiSummary']}";
     }).join("\n");
 
     // 2. Fetch last 5 messages for context
@@ -209,7 +209,7 @@ class _ChatTabState extends State<ChatTab> {
       if (doc.id == userMessageRef.id) {
         final List<Part> parts = [];
         if (trimmedText.isNotEmpty) {
-          parts.add(TextPart("You are the Neural Canvas AI Second Brain. Answer the user's prompt using exclusively these verified facts from their personal knowledge base library:\n[CONTEXT:\n$retrievedContext\n].\n\nUser Question: $trimmedText"));
+          parts.add(TextPart("You are the Neural Canvas AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText"));
         } else if (messageType != 'text') {
           parts.add(TextPart("I have attached a $messageType."));
         }

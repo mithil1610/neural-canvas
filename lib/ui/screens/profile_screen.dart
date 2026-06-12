@@ -36,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_user == null) return;
 
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
       );

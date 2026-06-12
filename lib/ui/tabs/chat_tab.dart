@@ -179,7 +179,7 @@ class _ChatTabState extends State<ChatTab> {
 
   Future<void> _handleAttachment() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.media,
         allowMultiple: false,
       );

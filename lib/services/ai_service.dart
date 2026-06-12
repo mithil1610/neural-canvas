@@ -130,7 +130,7 @@ class AiService {
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('chat_sessions')
+          .collection('chats')
           .doc(sessionId)
           .collection('messages')
           .orderBy('timestamp', descending: false)

@@ -21,6 +21,7 @@ class _ChatTabState extends State<ChatTab> {
   final ScrollController _scrollController = ScrollController();
   final AiService _aiService = AiService();
   final FocusNode _focusNode = FocusNode();
+  PlatformFile? _selectedAttachment;
 
   @override
   void initState() {
@@ -54,15 +55,124 @@ class _ChatTabState extends State<ChatTab> {
 
   Future<void> _handleSubmitted(String text) async {
     final trimmedText = text.trim();
-    if (trimmedText.isEmpty) return;
+    if (trimmedText.isEmpty && _selectedAttachment == null) return;
 
-    // Check if AI is currently typing
     final history = _aiService.chatHistory.value;
     if (history.isNotEmpty && history.last.isStreaming) return;
 
-    _textController.clear();
-    await _aiService.sendUserMessage(trimmedText);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please sign in first.')),
+        );
+      }
+      return;
+    }
+
+    String? mediaUrl;
+    String messageType = 'text';
+    final attachment = _selectedAttachment;
     
+    // Capture state variables locally and reset UI
+    _textController.clear();
+    setState(() {
+      _selectedAttachment = null;
+    });
+
+    if (attachment != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading attachment...')),
+        );
+      }
+      
+      try {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = attachment.name;
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('users/${user.uid}/uploads/${timestamp}_$fileName');
+
+        UploadTask uploadTask;
+        if (kIsWeb) {
+          uploadTask = storageRef.putData(attachment.bytes!);
+        } else {
+          uploadTask = storageRef.putFile(File(attachment.path!));
+        }
+
+        final snapshot = await uploadTask;
+        mediaUrl = await snapshot.ref.getDownloadURL();
+        
+        if (trimmedText.isNotEmpty) {
+          messageType = 'mixed';
+        } else {
+          final ext = attachment.extension?.toLowerCase();
+          messageType = (ext == 'pdf' || ext == 'doc' || ext == 'txt') ? 'file' : 'image';
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Upload failed: $e')),
+          );
+        }
+        return;
+      }
+    }
+
+    // 1. Execute direct Firestore write mapping
+    final payload = <String, dynamic>{
+      'senderId': user.uid,
+      'role': 'user',
+      'timestamp': FieldValue.serverTimestamp(),
+      'type': messageType,
+    };
+
+    if (messageType == 'text') {
+      payload['content'] = trimmedText;
+    } else if (messageType == 'mixed') {
+      payload['content'] = trimmedText;
+      payload['mediaUrl'] = mediaUrl;
+      payload['fileName'] = attachment?.name;
+    } else {
+      payload['content'] = mediaUrl;
+      payload['fileName'] = attachment?.name;
+    }
+
+    // Ensure we have an active chat session ID
+    String activeChatId = _aiService.currentSessionId ?? 
+        FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc().id;
+    
+    _aiService.currentSessionId = activeChatId;
+
+    // Ensure the root chat document exists
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('chats')
+        .doc(activeChatId)
+        .set({'createdAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+    // Push the payload into the messages sub-collection
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('chats')
+        .doc(activeChatId)
+        .collection('messages')
+        .add(payload);
+
+    // 2. Fallback to trigger the AI backend so the chat actually progresses
+    if (mediaUrl != null) {
+      _aiService.sendSystemContext(
+        trimmedText.isNotEmpty ? trimmedText : "I have attached a $messageType.", 
+        mediaPath: mediaUrl, 
+        mediaType: messageType,
+      );
+    } else {
+      _aiService.sendUserMessage(trimmedText);
+    }
+
     _focusNode.requestFocus();
   }
 
@@ -74,61 +184,13 @@ class _ChatTabState extends State<ChatTab> {
       );
 
       if (result == null || result.files.isEmpty) return;
-      final file = result.files.first;
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (!mounted) return;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please sign in to upload media.')),
-        );
-        return;
-      }
-
-      // Show uploading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uploading attachment...')),
-      );
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = file.name;
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('users/${user.uid}/uploads/${timestamp}_$fileName');
-
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        uploadTask = storageRef.putData(file.bytes!);
-      } else {
-        uploadTask = storageRef.putFile(File(file.path!));
-      }
-
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Append directly to Firestore as requested
-      if (_aiService.currentSessionId != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('chats')
-            .doc(_aiService.currentSessionId)
-            .collection('messages')
-            .add({
-          'text': 'Attachment: $downloadUrl',
-          'isAssistant': false,
-          'isSystem': false,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      }
-      
-      // Also add to local UI state so the user sees it
-      _aiService.sendUserMessage('Attachment: $downloadUrl');
-      
+      setState(() {
+        _selectedAttachment = result.files.first;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
+        SnackBar(content: Text('Failed to pick file: $e')),
       );
     }
   }
@@ -182,59 +244,90 @@ class _ChatTabState extends State<ChatTab> {
               ),
             ),
             child: SafeArea(
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    onPressed: _handleAttachment,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
+                  if (_selectedAttachment != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(24.0),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: ValueListenableBuilder<List<ChatMessage>>(
+                      child: Row(
+                        children: [
+                          Icon(Icons.insert_drive_file, color: Theme.of(context).colorScheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedAttachment!.name,
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => setState(() => _selectedAttachment = null),
+                            child: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: _handleAttachment,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(24.0),
+                          ),
+                          child: ValueListenableBuilder<List<ChatMessage>>(
+                            valueListenable: _aiService.chatHistory,
+                            builder: (context, messages, _) {
+                              final isTyping = messages.isNotEmpty && messages.last.isStreaming;
+                              return TextField(
+                                controller: _textController,
+                                focusNode: _focusNode,
+                                onSubmitted: _handleSubmitted,
+                                enabled: !isTyping,
+                                decoration: InputDecoration(
+                                  hintText: isTyping ? 'Assistant is typing...' : 'Ask your assistant...',
+                                  hintStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ValueListenableBuilder<List<ChatMessage>>(
                         valueListenable: _aiService.chatHistory,
                         builder: (context, messages, _) {
                           final isTyping = messages.isNotEmpty && messages.last.isStreaming;
-                          return TextField(
-                            controller: _textController,
-                            focusNode: _focusNode,
-                            onSubmitted: _handleSubmitted,
-                            enabled: !isTyping,
-                            decoration: InputDecoration(
-                              hintText: isTyping ? 'Assistant is typing...' : 'Ask your assistant...',
-                              hintStyle: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                            ),
+                          return IconButton(
+                            icon: isTyping 
+                                ? const SizedBox(
+                                    width: 24, 
+                                    height: 24, 
+                                    child: CircularProgressIndicator(strokeWidth: 2)
+                                  ) 
+                                : const Icon(Icons.send),
+                            onPressed: isTyping ? null : () => _handleSubmitted(_textController.text),
+                            color: Theme.of(context).colorScheme.primary,
                           );
                         },
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ValueListenableBuilder<List<ChatMessage>>(
-                    valueListenable: _aiService.chatHistory,
-                    builder: (context, messages, _) {
-                      final isTyping = messages.isNotEmpty && messages.last.isStreaming;
-                      return IconButton(
-                        icon: isTyping 
-                            ? const SizedBox(
-                                width: 24, 
-                                height: 24, 
-                                child: CircularProgressIndicator(strokeWidth: 2)
-                              ) 
-                            : const Icon(Icons.send),
-                        onPressed: isTyping ? null : () => _handleSubmitted(_textController.text),
-                        color: Theme.of(context).colorScheme.primary,
-                      );
-                    },
+                    ],
                   ),
                 ],
               ),

@@ -13,6 +13,7 @@ import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,10 +80,20 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     // Begin listening for shared files the absolute second the app boots up
     ShareReceiverService().initialize(navigatorKey);
+    globalTabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (globalTabController.value != _currentIndex && mounted) {
+      setState(() {
+        _currentIndex = globalTabController.value;
+      });
+    }
   }
 
   @override
   void dispose() {
+    globalTabController.removeListener(_onTabChanged);
     ShareReceiverService().dispose();
     super.dispose();
   }
@@ -146,6 +157,7 @@ class _MainShellState extends State<MainShell> {
             elevation: 0,
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) {
+              globalTabController.value = index;
               setState(() {
                 _currentIndex = index;
               });

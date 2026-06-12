@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:neural_canvas/services/decomposition_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
+import 'package:neural_canvas/main.dart';
 
 class ShareReceiverService {
   // Singleton pattern
@@ -60,6 +61,9 @@ class ShareReceiverService {
         fileType = 'text';
         aiType = AiProcessingType.text;
       }
+
+      // Transition user immediately to Chat Tab scratchpad
+      globalTabController.value = 4;
 
       // Activate the global overlay immediately before processing
       globalAiProcessingState.value = AiProcessingData(aiType);

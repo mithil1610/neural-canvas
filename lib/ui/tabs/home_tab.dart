@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:neural_canvas/ui/screens/profile_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:neural_canvas/main.dart';
+import 'package:neural_canvas/services/ai_service.dart';
 
 // --- Data Models ---
 
@@ -102,6 +109,8 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
+  final AiService _aiService = AiService();
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -273,18 +282,114 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
+  Future<void> _handleImport() async {
+    if (_isImporting) return;
+    
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.media,
+        allowMultiple: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      setState(() { _isImporting = true; });
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = file.name;
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('users/${user.uid}/uploads/${timestamp}_$fileName');
+
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = storageRef.putData(file.bytes!);
+      } else {
+        uploadTask = storageRef.putFile(File(file.path!));
+      }
+
+      final snapshot = await uploadTask;
+      final mediaUrl = await snapshot.ref.getDownloadURL();
+
+      final ext = file.extension?.toLowerCase();
+      final messageType = (ext == 'pdf' || ext == 'doc' || ext == 'txt') ? 'file' : 'image';
+
+      final payload = <String, dynamic>{
+        'senderId': user.uid,
+        'role': 'user',
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': messageType,
+        'content': mediaUrl,
+        'fileName': fileName,
+      };
+
+      String activeChatId = _aiService.currentSessionId ?? 
+          FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc().id;
+      
+      _aiService.currentSessionId = activeChatId;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chats')
+          .doc(activeChatId)
+          .set({'createdAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chats')
+          .doc(activeChatId)
+          .collection('messages')
+          .add(payload);
+
+      _aiService.sendSystemContext("I have attached a $messageType.", mediaPath: mediaUrl, mediaType: messageType);
+
+      if (mounted) {
+        globalTabController.value = 4;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isImporting = false; });
+      }
+    }
+  }
+
   Widget _buildQuickAction(BuildContext context, QuickAction action) {
     return Column(
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: action.color.withValues(alpha: 0.15),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: action.color.withValues(alpha: 0.3)),
+            onTap: () {
+              if (action.label == 'Import') {
+                _handleImport();
+              }
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: action.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: action.color.withValues(alpha: 0.3)),
+              ),
+              child: _isImporting && action.label == 'Import'
+                  ? Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: action.color),
+                    )
+                  : Icon(action.icon, color: action.color, size: 24),
+            ),
           ),
-          child: Icon(action.icon, color: action.color, size: 24),
         ),
         const SizedBox(height: 8),
         Text(

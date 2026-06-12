@@ -2,16 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>AppGroupId</key>
+	<key>AppGroupIdentifier</key>
 	<string>group.com.mithil.neuralcanvas</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+				<string>ShareMedia</string>
 			</array>
 		</dict>
 	</array>

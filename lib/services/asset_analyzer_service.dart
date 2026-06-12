@@ -33,15 +33,14 @@ class AssetAnalyzerService {
         final response = await http.get(Uri.parse(fileUrl));
         final bytes = response.bodyBytes;
         
-        final prompt = TextPart("Perform an exhaustive analysis of this image. List all recognizable objects, structural text contents, core color palettes, moods, and contextual actions. Provide a clean paragraph summarizing everything seen.");
+        final content = [
+          Content.multi([
+            DataPart('image/jpeg', bytes),
+            TextPart("Analyze this image. Provide a clean summary paragraph listing objects, text, and context."),
+          ])
+        ];
         
-        // Gemini expects 'image/jpeg' or 'image/png' etc.
-        String mimeType = fileType == 'jpg' ? 'image/jpeg' : 'image/$fileType';
-        final imageParts = [DataPart(mimeType, bytes)];
-        
-        final responseGemini = await model.generateContent([
-          Content.multi([prompt, ...imageParts])
-        ]);
+        final responseGemini = await model.generateContent(content);
         
         aiSummary = responseGemini.text ?? "Could not extract meaning from image.";
       } else {

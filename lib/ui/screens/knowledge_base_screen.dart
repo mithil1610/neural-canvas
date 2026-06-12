@@ -168,22 +168,12 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
       );
     }
 
-    // Build the dynamic query
+    // Build the unconstrained query
     Query query = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .collection('knowledge_base');
-
-    if (_selectedFilter == 'Documents') {
-      query = query.where('fileType', whereIn: ['pdf', 'doc', 'docx', 'txt']);
-    } else if (_selectedFilter == 'Images') {
-      query = query.where('fileType', whereIn: ['png', 'jpeg', 'jpg']);
-    } else if (_selectedFilter == 'Audio') {
-      query = query.where('fileType', whereIn: ['mp3', 'm4a', 'wav']);
-    }
-    
-    // Sort after filtering
-    query = query.orderBy('uploadedAt', descending: true);
+        .collection('knowledge_base')
+        .orderBy('uploadedAt', descending: true);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -297,12 +287,23 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final docs = snapshot.data?.docs ?? [];
+                  final allDocs = snapshot.data?.docs ?? [];
                   
                   // Local Filtering
-                  final filteredDocs = docs.where((doc) {
-                    if (_searchQuery.isEmpty) return true;
+                  final filteredDocs = allDocs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
+                    
+                    // Chip filter
+                    final type = (data['fileType'] ?? '').toString().toLowerCase();
+                    bool chipMatches = true;
+                    if (_selectedFilter == "Images") chipMatches = ['png', 'jpg', 'jpeg'].contains(type);
+                    else if (_selectedFilter == "Documents") chipMatches = ['pdf', 'doc', 'docx', 'txt'].contains(type);
+                    else if (_selectedFilter == "Audio") chipMatches = ['mp3', 'm4a', 'wav'].contains(type);
+                    
+                    if (!chipMatches) return false;
+
+                    // Search filter
+                    if (_searchQuery.isEmpty) return true;
                     final fileName = (data['fileName'] ?? '').toString().toLowerCase();
                     final aiSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
                     return fileName.contains(_searchQuery) || aiSummary.contains(_searchQuery);

@@ -28,31 +28,35 @@ class AssetAnalyzerService {
     try {
       String aiSummary = "Processing semantic data...";
       
-      if (fileType == 'png' || fileType == 'jpeg' || fileType == 'jpg') {
-        // Multi-modal Vision Request
-        final response = await http.get(Uri.parse(fileUrl));
-        final bytes = response.bodyBytes;
-        
-        final content = [
-          Content.multi([
-            DataPart('image/jpeg', bytes),
-            TextPart("Analyze this image. Provide a clean summary paragraph listing objects, text, and context."),
-          ])
-        ];
-        
-        final responseGemini = await model.generateContent(content);
-        
-        aiSummary = responseGemini.text ?? "Could not extract meaning from image.";
+      String mimeType = 'image/jpeg';
+      String systemPrompt = 'Analyze this asset comprehensively.';
+
+      if (fileType == 'pdf') {
+        mimeType = 'application/pdf';
+        systemPrompt = 'Extract all textual data via deep OCR. Identify core concepts, critical names, data points, entities, and provide an exhaustive analytical summary.';
+      } else if (['mp3', 'm4a', 'wav'].contains(fileType)) {
+        mimeType = 'audio/mp3';
+        systemPrompt = 'Listen to this audio track carefully. Transcribe the spoken text entirely, analyze the conversational tone, summarize the core topics discussed, and output key takeaways.';
+      } else if (['mp4', 'mov'].contains(fileType)) {
+        mimeType = 'video/mp4';
+        systemPrompt = 'Watch this video clip sequentially. Detect key scenes, summarize visual actions, transcribe background audio tracks, and create a timeline summary of what occurs.';
       } else {
-         // Text/PDF metadata-based generic reading for now
-         final prompt = TextPart("You are a semantic indexer for a knowledge base. The user just uploaded a file of type: $fileType. Generate a short, highly structured 2-sentence summary acknowledging this document type and suggesting it might contain structured formatting, text, or tabular data. Do not invent details you cannot see, just provide a metadata-based structural acknowledgment.");
-         
-         final responseGemini = await model.generateContent([
-           Content.text(prompt.text)
-         ]);
-         
-         aiSummary = responseGemini.text ?? "Document successfully indexed.";
+        mimeType = 'image/jpeg';
+        systemPrompt = 'Perform an image analysis. Read any overlay text via OCR, detect visible objects, actions, human expressions, emotional mood, and summarize the overall context.';
       }
+
+      final response = await http.get(Uri.parse(fileUrl));
+      final bytes = response.bodyBytes;
+      
+      final content = [
+        Content.multi([
+          DataPart(mimeType, bytes),
+          TextPart(systemPrompt),
+        ])
+      ];
+      
+      final responseGemini = await model.generateContent(content);
+      aiSummary = responseGemini.text ?? "Could not extract meaning from asset.";
       
       await _updateSummary(docId, aiSummary.trim());
       debugPrint("AssetAnalyzer: Successfully generated summary for $docId");

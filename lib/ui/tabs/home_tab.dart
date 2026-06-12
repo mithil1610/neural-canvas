@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:neural_canvas/ui/screens/profile_screen.dart';
 
 // --- Data Models ---
 
@@ -138,6 +140,36 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24, letterSpacing: -0.5),
               ),
               actions: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    ).then((_) {
+                      // Trigger a rebuild in case the profile picture was changed
+                      if (mounted) setState(() {});
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.userChanges(),
+                      builder: (context, snapshot) {
+                        final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
+                        return CircleAvatar(
+                          radius: 16,
+                          backgroundColor: cs.surfaceContainerHighest,
+                          backgroundImage: user?.photoURL != null
+                              ? CachedNetworkImageProvider(user!.photoURL!)
+                              : null,
+                          child: user?.photoURL == null
+                              ? Icon(Icons.person, size: 20, color: cs.onSurfaceVariant)
+                              : null,
+                        );
+                      },
+                    ),
+                  ),
+                ),
                 IconButton(
                   icon: Stack(
                     children: [

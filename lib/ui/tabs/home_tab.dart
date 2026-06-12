@@ -6,11 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:neural_canvas/main.dart';
-import 'package:neural_canvas/services/ai_service.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 
 // --- Data Models ---
 
@@ -111,7 +107,6 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
-  final AiService _aiService = AiService();
   bool _isImporting = false;
 
   @override

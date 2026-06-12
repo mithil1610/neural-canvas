@@ -26,6 +26,8 @@ class _ChatTabState extends State<ChatTab> {
   final FocusNode _focusNode = FocusNode();
   PlatformFile? _selectedAttachment;
 
+  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+
   @override
   void initState() {
     super.initState();
@@ -221,8 +223,8 @@ class _ChatTabState extends State<ChatTab> {
       }
     }
 
-    final apiKey = const String.fromEnvironment('GEMINI_API_KEY');
-    if (apiKey.isEmpty) {
+    if (_geminiApiKey.isEmpty) {
+      print("⚠️ Warning: GEMINI_API_KEY environment variable is uninitialized.");
       await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('chats').doc(activeChatId).collection('messages').add({
         'senderId': 'system',
         'role': 'ai',
@@ -234,7 +236,10 @@ class _ChatTabState extends State<ChatTab> {
       return;
     }
 
-    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+    final model = GenerativeModel(
+      model: 'gemini-1.5-flash',
+      apiKey: _geminiApiKey,
+    );
 
     try {
       final responseStream = model.generateContentStream(promptContents);

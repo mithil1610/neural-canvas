@@ -150,6 +150,21 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     final connectedDocs = allDocs.where((doc) {
       if (doc.id == currentDocId) return false;
       final data = doc.data() as Map<String, dynamic>;
+      
+      // Chronological Proximity Check (48 hours)
+      bool isChronologicallyClose = false;
+      final currentData = allDocs.firstWhere((d) => d.id == currentDocId).data() as Map<String, dynamic>;
+      final currentTimestamp = currentData['uploadedAt'] as Timestamp?;
+      final otherTimestamp = data['uploadedAt'] as Timestamp?;
+      
+      if (currentTimestamp != null && otherTimestamp != null) {
+        final diff = currentTimestamp.toDate().difference(otherTimestamp.toDate()).abs();
+        if (diff.inHours <= 48) {
+          isChronologicallyClose = true;
+        }
+      }
+
+      // Semantic Keyword Check
       final otherSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
       final otherName = (data['fileName'] ?? '').toString().toLowerCase();
       final otherText = '$otherSummary $otherName';
@@ -158,7 +173,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
       for (final word in words) {
         if (otherText.contains(word)) matchCount++;
       }
-      return matchCount >= 2;
+      
+      return isChronologicallyClose || matchCount >= 2;
     }).take(10).toList();
 
     showModalBottomSheet(

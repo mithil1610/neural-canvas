@@ -428,23 +428,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     if (user == null) return;
 
     // Premium Check Lock: Wired to actual user subscription data
-    bool isFreeAccount = true;
+    bool isUserPremium = false;
     try {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         final data = userDoc.data();
-        if (data != null && (data['isPro'] == true || data['subscriptionTier'] != null)) {
-          isFreeAccount = false; // User has an active subscription
+        if (data != null && (data['isPro'] == true || data['accountTier'] != null || data['subscriptionTier'] != null)) {
+          isUserPremium = true; // User has an active subscription
         }
       }
     } catch (e) {
       // On error, securely default to free account behavior
-      isFreeAccount = true;
+      isUserPremium = false;
     }
 
     if (!mounted) return;
 
-    if (isFreeAccount) {
+    if (!isUserPremium) {
       // If the user's account flag is marked as a free account, present Paywall
       SubscriptionPaywallScreen.show(context);
       return; // Stops the Generate engine from running

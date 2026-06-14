@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../services/user_service.dart';
 import '../screens/subscription_paywall_screen.dart';
 
 class QuickAction {
@@ -427,20 +428,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Premium Check Lock: Wired to actual user subscription data
-    bool isUserPremium = false;
-    try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        if (data != null && (data['isPro'] == true || data['accountTier'] != null || data['subscriptionTier'] != null)) {
-          isUserPremium = true; // User has an active subscription
-        }
-      }
-    } catch (e) {
-      // On error, securely default to free account behavior
-      isUserPremium = false;
-    }
+    // Premium Check Lock: Wired to actual user subscription data via utility layer
+    bool isUserPremium = await UserService.isUserPremium(user.uid);
 
     if (!mounted) return;
 

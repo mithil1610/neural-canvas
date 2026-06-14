@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -15,13 +16,74 @@ class KnowledgeBaseScreen extends StatefulWidget {
 
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   String _selectedFilter = 'All'; // Filters: All, Documents, Images, Audio, Video
+  bool _isSearching = false;
+  bool _isSemanticSearchActive = false;
+  List<String> _matchedDocIds = [];
+  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _performSemanticSearch(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _isSemanticSearchActive = false;
+        _matchedDocIds = [];
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _isSemanticSearchActive = true;
+    });
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .get();
+
+      String allAssetSummaries = snapshot.docs.map((d) {
+        final data = d.data();
+        return "ID: ${d.id} | Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
+      }).join('\n');
+
+      final systemInstruction = "You are the Neural Canvas Semantic Search Router. Look at this index list of the user's personal knowledge documents: [INDEX: $allAssetSummaries]. The user is searching their digital brain for: '$query'. Identify and return ONLY a comma-separated list of the exact Firestore document IDs that match the semantic intent of this search. Return nothing else. No markdown, no intro.";
+
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _geminiApiKey,
+      );
+
+      final response = await model.generateContent([Content.text(systemInstruction)]);
+      
+      final text = response.text ?? '';
+      final matchedIds = text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+      if (mounted) {
+        setState(() {
+          _matchedDocIds = matchedIds;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _isSemanticSearchActive = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Semantic search failed: $e')));
+      }
+    }
   }
 
   Widget _buildFileIcon(String fileType, String fileUrl, {double size = 48}) {
@@ -260,7 +322,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 ),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                  onChanged: (value) => setState(() {}),
+                  onSubmitted: (value) => _performSemanticSearch(value),
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
                     hintText: 'Search your assets...',
@@ -270,12 +333,15 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       child: Icon(Icons.search, size: 22, color: cs.primary),
                     ),
                     prefixIconConstraints: const BoxConstraints(minWidth: 40),
-                    suffixIcon: _searchQuery.isNotEmpty
+                    suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
                             icon: Icon(Icons.close, size: 20, color: cs.onSurfaceVariant),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() => _searchQuery = '');
+                              setState(() {
+                                _isSemanticSearchActive = false;
+                                _matchedDocIds = [];
+                              });
                             },
                           )
                         : Padding(
@@ -288,7 +354,17 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            if (_isSearching)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  color: cs.primary.withValues(alpha: 0.5),
+                  minHeight: 2,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            if (!_isSearching) const SizedBox(height: 16),
 
             // Filter Chips Row
             SizedBox(
@@ -359,10 +435,10 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                     if (!chipMatches) return false;
 
                     // Search filter
-                    if (_searchQuery.isEmpty) return true;
-                    final fileName = (data['fileName'] ?? '').toString().toLowerCase();
-                    final aiSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
-                    return fileName.contains(_searchQuery) || aiSummary.contains(_searchQuery);
+                    if (_isSemanticSearchActive) {
+                      return _matchedDocIds.contains(doc.id);
+                    }
+                    return true;
                   }).toList();
 
                   if (filteredDocs.isEmpty) {

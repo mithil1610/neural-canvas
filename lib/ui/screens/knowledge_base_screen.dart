@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -14,7 +16,7 @@ class KnowledgeBaseScreen extends StatefulWidget {
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedFilter = 'All'; // Filters: All, Documents, Images, Audio
+  String _selectedFilter = 'All'; // Filters: All, Documents, Images, Audio, Video
 
   @override
   void dispose() {
@@ -22,24 +24,24 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     super.dispose();
   }
 
-  Widget _buildFileIcon(String fileType, String fileUrl) {
+  Widget _buildFileIcon(String fileType, String fileUrl, {double size = 48}) {
     if (fileType == 'png' || fileType == 'jpeg' || fileType == 'jpg') {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: CachedNetworkImage(
           imageUrl: fileUrl,
-          width: 48,
-          height: 48,
+          width: size,
+          height: size,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            width: 48,
-            height: 48,
+            width: size,
+            height: size,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
           ),
           errorWidget: (context, url, error) => Container(
-            width: 48,
-            height: 48,
+            width: size,
+            height: size,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: const Icon(Icons.image_not_supported, size: 24),
           ),
@@ -56,72 +58,120 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     } else if (fileType == 'mp3' || fileType == 'm4a' || fileType == 'wav') {
       iconData = Icons.graphic_eq;
       iconColor = Colors.deepPurpleAccent;
+    } else if (fileType == 'mp4' || fileType == 'mov') {
+      iconData = Icons.video_library;
+      iconColor = Colors.orangeAccent;
     } else {
       iconData = Icons.insert_drive_file;
       iconColor = Colors.grey;
     }
 
     return Container(
-      width: 48,
-      height: 48,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: iconColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(iconData, color: iconColor, size: 28),
+      child: Icon(iconData, color: iconColor, size: size * 0.6),
     );
   }
 
-  void _showActionModal(BuildContext context, String docId, String fileName, String fileUrl) {
+  void _showDetailModal(BuildContext context, String fileName, String fileType, String fileUrl, String aiSummary) {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Text(
-                    fileName,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: cs.surface.withValues(alpha: 0.9),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 16),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                ),
-                const Divider(),
-                ListTile(
-                  leading: Icon(Icons.visibility, color: cs.primary),
-                  title: const Text('View File'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('View File not implemented yet')));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.edit, color: cs.primary),
-                  title: const Text('Rename Source'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rename Source not implemented yet')));
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.delete, color: cs.error),
-                  title: Text('Delete Asset', style: TextStyle(color: cs.error)),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await _deleteAsset(docId, fileUrl);
-                  },
-                ),
-              ],
+                  
+                  // Header / File Preview
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _buildFileIcon(fileType, fileUrl, size: 64),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fileName,
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: cs.primaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    fileType.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: cs.outlineVariant.withValues(alpha: 0.2), height: 1),
+                  
+                  // AI Summary Content
+                  Expanded(
+                    child: Markdown(
+                      data: aiSummary,
+                      padding: const EdgeInsets.all(24),
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(fontSize: 16, color: cs.onSurface, height: 1.6),
+                        h1: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.primary),
+                        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface),
+                        h3: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface),
+                        listBullet: TextStyle(color: cs.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -246,7 +296,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                children: ['All', 'Documents', 'Images', 'Audio'].map((filter) {
+                children: ['All', 'Documents', 'Images', 'Audio', 'Video'].map((filter) {
                   final isSelected = _selectedFilter == filter;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -302,6 +352,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       chipMatches = ['pdf', 'doc', 'docx', 'txt'].contains(type);
                     } else if (_selectedFilter == "Audio") {
                       chipMatches = ['mp3', 'm4a', 'wav'].contains(type);
+                    } else if (_selectedFilter == "Video") {
+                      chipMatches = ['mp4', 'mov'].contains(type);
                     }
                     
                     if (!chipMatches) return false;
@@ -347,65 +399,73 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                         dateStr = "${date.month}/${date.day}/${date.year}";
                       }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          child: InkWell(
+                      return Dismissible(
+                        key: Key(docId),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.shade700,
                             borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                               // Open viewer logic later
-                            },
-                            onLongPress: () {
-                               _showActionModal(context, docId, fileName, fileUrl);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                children: [
-                                  _buildFileIcon(fileType, fileUrl),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          fileName,
-                                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          aiSummary,
-                                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
+                          ),
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 24),
+                          child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                        ),
+                        onDismissed: (_) {
+                          _deleteAsset(docId, fileUrl);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                 _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    _buildFileIcon(fileType, fileUrl, size: 56),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            fileName,
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (dateStr.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              dateStr, 
+                                              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  if (dateStr.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      dateStr, 
-                                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.5))
-                                    ),
+                                    Icon(Icons.chevron_right, color: cs.onSurfaceVariant.withValues(alpha: 0.3)),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),

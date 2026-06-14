@@ -888,6 +888,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                         ),
                         TextButton.icon(
                           onPressed: () {
+                            // ignore: deprecated_member_use
                             Share.share(_generatedContent);
                           },
                           icon: const Icon(Icons.share, size: 18),

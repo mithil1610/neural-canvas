@@ -311,7 +311,56 @@ class _ChatTabState extends State<ChatTab> {
           });
     }
 
+    if (historySnapshot.docs.length == 3) {
+      updateChatSessionTitle(activeChatId);
+    }
+
     _focusNode.requestFocus();
+  }
+
+  Future<void> updateChatSessionTitle(String chatId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _geminiApiKey.isEmpty) return;
+
+    try {
+      final messagesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .orderBy('timestamp', descending: false)
+          .limit(3)
+          .get();
+
+      String openingMessagesContent = messagesSnapshot.docs.map((d) {
+        final data = d.data();
+        final role = data['role'] == 'ai' ? 'AI' : 'User';
+        return "$role: ${data['content']}";
+      }).join('\n');
+
+      final prompt = "Review these opening messages from a chat session. Generate a highly descriptive, professional 3-to-4 word summary title for this conversation. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Conversation text logs: $openingMessagesContent";
+
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _geminiApiKey,
+      );
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      final geminiGeneratedTitle = response.text?.trim() ?? 'New Conversation';
+
+      // Clean up potential markdown formatting from gemini
+      final cleanTitle = geminiGeneratedTitle.replaceAll('**', '').replaceAll('"', '');
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('chats')
+          .doc(chatId)
+          .update({'title': cleanTitle});
+    } catch (e) {
+      debugPrint("Auto-title error: $e");
+    }
   }
 
   Future<void> _handleAttachment() async {

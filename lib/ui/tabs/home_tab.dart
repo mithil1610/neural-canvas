@@ -13,6 +13,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class QuickAction {
   final IconData icon;
@@ -419,6 +422,31 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _handleGenerate() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return const Scaffold(backgroundColor: Colors.transparent, body: SizedBox());
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: _GenerateDialog(user: user),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildQuickAction(BuildContext context, QuickAction action) {
     return Column(
       children: [
@@ -430,6 +458,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               if (action.label == 'Import') _handleImport();
               if (action.label == 'Scan') _handleScan();
               if (action.label == 'Voice Note') _handleVoiceNote();
+              if (action.label == 'Generate') _handleGenerate();
             },
             child: Container(
               width: 56,
@@ -672,6 +701,204 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GenerateDialog extends StatefulWidget {
+  final User user;
+  const _GenerateDialog({required this.user});
+
+  @override
+  State<_GenerateDialog> createState() => _GenerateDialogState();
+}
+
+class _GenerateDialogState extends State<_GenerateDialog> {
+  final TextEditingController _promptController = TextEditingController();
+  bool _isGenerating = false;
+  String _generatedContent = '';
+  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+
+  Future<void> _synthesizeMatrix() async {
+    final prompt = _promptController.text.trim();
+    if (prompt.isEmpty) return;
+
+    setState(() {
+      _isGenerating = true;
+      _generatedContent = '';
+    });
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user.uid)
+          .collection('knowledge_base')
+          .get();
+
+      String allSummaries = snapshot.docs.map((d) {
+        final data = d.data();
+        return "Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
+      }).join('\n\n');
+
+      final systemInstruction = "You are the Neural Canvas Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
+
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _geminiApiKey,
+      );
+
+      final responseStream = model.generateContentStream([Content.text(systemInstruction)]);
+      
+      await for (final chunk in responseStream) {
+        if (chunk.text != null) {
+          if (mounted) {
+            setState(() {
+              _generatedContent += chunk.text!;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _generatedContent = 'Error during synthesis: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            color: cs.surface.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Creation Engine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.primary)),
+                    IconButton(
+                      icon: Icon(Icons.close, color: cs.onSurfaceVariant),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              if (_generatedContent.isEmpty && !_isGenerating) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: TextField(
+                    controller: _promptController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: "What should your Second Brain create today? (e.g., 'Summarize my week', 'Draft an article from my notes')",
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                      filled: true,
+                      fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Synthesize Matrix', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    onPressed: _synthesizeMatrix,
+                  ),
+                ),
+              ] else if (_isGenerating && _generatedContent.isEmpty) ...[
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: cs.primary),
+                        const SizedBox(height: 24),
+                        const Text('Scanning knowledge coordinates...', style: TextStyle(fontStyle: FontStyle.italic)),
+                        const SizedBox(height: 8),
+                        const Text('Engineering story arc...', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Expanded(
+                  child: Markdown(
+                    data: _generatedContent,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(fontSize: 15, color: cs.onSurface, height: 1.5),
+                      h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: cs.primary),
+                      h2: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
+                      listBullet: TextStyle(color: cs.primary),
+                    ),
+                  ),
+                ),
+                if (!_isGenerating)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: _generatedContent));
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied to clipboard!')));
+                          },
+                          icon: const Icon(Icons.copy, size: 18),
+                          label: const Text('Copy Text'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Share.share(_generatedContent);
+                          },
+                          icon: const Icon(Icons.share, size: 18),
+                          label: const Text('Share Narrative'),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ),
     );

@@ -139,8 +139,28 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     );
   }
 
-  void _showDetailModal(BuildContext context, String fileName, String fileType, String fileUrl, String aiSummary) {
+  void _showDetailModal(BuildContext context, String currentDocId, String fileName, String fileType, String fileUrl, String aiSummary, List<QueryDocumentSnapshot> allDocs) {
     final cs = Theme.of(context).colorScheme;
+
+    final combinedText = '$aiSummary $fileName'.toLowerCase();
+    final words = combinedText.split(RegExp(r'\W+'))
+        .where((w) => w.length > 5)
+        .toSet();
+
+    final connectedDocs = allDocs.where((doc) {
+      if (doc.id == currentDocId) return false;
+      final data = doc.data() as Map<String, dynamic>;
+      final otherSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
+      final otherName = (data['fileName'] ?? '').toString().toLowerCase();
+      final otherText = '$otherSummary $otherName';
+      
+      int matchCount = 0;
+      for (final word in words) {
+        if (otherText.contains(word)) matchCount++;
+      }
+      return matchCount >= 2;
+    }).take(10).toList();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -232,6 +252,58 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       ),
                     ),
                   ),
+                  if (connectedDocs.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Divider(color: cs.outlineVariant.withValues(alpha: 0.2), height: 32),
+                          Text('Connected Graph Coordinates', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 64,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: connectedDocs.length,
+                              itemBuilder: (context, index) {
+                                final cDoc = connectedDocs[index];
+                                final cData = cDoc.data() as Map<String, dynamic>;
+                                final cName = cData['fileName'] ?? 'Untitled';
+                                final cType = cData['fileType'] ?? 'unknown';
+                                final cUrl = cData['fileUrl'] ?? '';
+                                final cSummary = cData['aiSummary'] ?? '';
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(32),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
+                                      },
+                                      child: Tooltip(
+                                        message: cName,
+                                        child: ClipOval(
+                                          child: Container(
+                                            color: cs.surfaceContainerHighest,
+                                            child: _buildFileIcon(cType, cUrl, size: 56),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -511,7 +583,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
                               onTap: () {
-                                 _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
+                                 _showDetailModal(context, docId, fileName, fileType, fileUrl, aiSummary, allDocs);
                               },
                               child: Padding(
                                 padding: const EdgeInsets.all(12),

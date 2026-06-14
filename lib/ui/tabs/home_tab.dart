@@ -427,12 +427,25 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Premium Check Lock (TODO: Wire to actual user subscription data)
-    // Using a runtime check here to avoid the 'dead code' linter warning during testing.
-    bool isFreeAccount = DateTime.now().year > 2020; 
+    // Premium Check Lock: Wired to actual user subscription data
+    bool isFreeAccount = true;
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        if (data != null && (data['isPro'] == true || data['subscriptionTier'] != null)) {
+          isFreeAccount = false; // User has an active subscription
+        }
+      }
+    } catch (e) {
+      // On error, securely default to free account behavior
+      isFreeAccount = true;
+    }
+
     if (isFreeAccount) {
-      SubscriptionPaywallScreen.show(context);
-      // return; // Uncomment this return statement in production to actually block access
+      // If the user's account flag is marked as a free account, present Paywall
+      if (mounted) SubscriptionPaywallScreen.show(context);
+      return; // Stops the Generate engine from running
     }
     
     showGeneralDialog(

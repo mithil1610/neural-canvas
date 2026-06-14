@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,28 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
-
-// --- Data Models ---
-
-class MemoryReel {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final List<Color> gradientColors;
-  final String timeAgo;
-  final int itemCount;
-  final String category;
-
-  const MemoryReel({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.gradientColors,
-    required this.timeAgo,
-    required this.itemCount,
-    required this.category,
-  });
-}
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class QuickAction {
   final IconData icon;
@@ -39,64 +19,12 @@ class QuickAction {
   const QuickAction({required this.icon, required this.label, required this.color});
 }
 
-// --- Sample Data ---
-
-const List<MemoryReel> _sampleReels = [
-  MemoryReel(
-    title: 'Weekend in Austin',
-    subtitle: 'Photos, videos & a receipt from the taco place',
-    icon: Icons.photo_library_outlined,
-    gradientColors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-    timeAgo: '2 days ago',
-    itemCount: 23,
-    category: 'Travel',
-  ),
-  MemoryReel(
-    title: 'Lease Agreement — Apt 4B',
-    subtitle: 'OCR extracted. Key dates flagged.',
-    icon: Icons.description_outlined,
-    gradientColors: [Color(0xFF0EA5E9), Color(0xFF06B6D4)],
-    timeAgo: '5 days ago',
-    itemCount: 1,
-    category: 'Documents',
-  ),
-  MemoryReel(
-    title: 'Design Sprint — Week 12',
-    subtitle: 'Whiteboard snapshots & meeting transcript',
-    icon: Icons.draw_outlined,
-    gradientColors: [Color(0xFFF59E0B), Color(0xFFF97316)],
-    timeAgo: '1 week ago',
-    itemCount: 14,
-    category: 'Work',
-  ),
-  MemoryReel(
-    title: 'Morning Run Highlights',
-    subtitle: 'Route map, photos at sunrise, Spotify playlist',
-    icon: Icons.directions_run,
-    gradientColors: [Color(0xFF10B981), Color(0xFF34D399)],
-    timeAgo: '3 days ago',
-    itemCount: 8,
-    category: 'Health',
-  ),
-  MemoryReel(
-    title: 'Recipe Collection — June',
-    subtitle: 'Screenshots from TikTok & handwritten notes',
-    icon: Icons.restaurant_menu,
-    gradientColors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-    timeAgo: 'Yesterday',
-    itemCount: 6,
-    category: 'Personal',
-  ),
-];
-
 const List<QuickAction> _quickActions = [
   QuickAction(icon: Icons.camera_alt_outlined, label: 'Scan', color: Color(0xFF818CF8)),
   QuickAction(icon: Icons.mic_none, label: 'Voice Note', color: Color(0xFFA78BFA)),
   QuickAction(icon: Icons.upload_file_outlined, label: 'Import', color: Color(0xFF0EA5E9)),
   QuickAction(icon: Icons.auto_awesome, label: 'Generate', color: Color(0xFFF59E0B)),
 ];
-
-// --- Widget ---
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -127,167 +55,189 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning ☀️';
+    if (hour < 17) return 'Good afternoon 🌤️';
+    return 'Good evening 🌙';
+  }
 
-    return Scaffold(
+  // Generate dynamic title from AI summary
+  String _generateReelTitle(String aiSummary, String fallbackType) {
+    final summaryLower = aiSummary.toLowerCase();
+    if (summaryLower.contains("receipt") || summaryLower.contains("invoice") || summaryLower.contains("financial")) return "Financial Records";
+    if (summaryLower.contains("route") || summaryLower.contains("run") || summaryLower.contains("workout")) return "Fitness Highlights";
+    if (summaryLower.contains("vacation") || summaryLower.contains("trip") || summaryLower.contains("travel")) return "Travel Memories";
+    if (summaryLower.contains("design") || summaryLower.contains("meeting") || summaryLower.contains("work")) return "Work Insights";
+    if (summaryLower.contains("recipe") || summaryLower.contains("cook") || summaryLower.contains("food")) return "Culinary Collection";
+    
+    // Extracted fileType fallback
+    if (fallbackType == 'pdf' || fallbackType == 'doc' || fallbackType == 'docx') return "Document Insights";
+    if (fallbackType == 'mp4' || fallbackType == 'mov') return "Video Timeline";
+    if (fallbackType == 'mp3' || fallbackType == 'wav') return "Audio Captures";
+    
+    return "Visual Musings";
+  }
+
+  Widget _buildFileIcon(String fileType, String fileUrl, {double size = 48}) {
+    if (fileType == 'png' || fileType == 'jpeg' || fileType == 'jpg') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedNetworkImage(
+          imageUrl: fileUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            width: size,
+            height: size,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+          ),
+          errorWidget: (context, url, error) => Container(
+            width: size,
+            height: size,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Icon(Icons.image_not_supported, size: 24),
+          ),
+        ),
+      );
+    }
+    
+    IconData iconData;
+    Color iconColor;
+
+    if (fileType == 'pdf' || fileType == 'doc' || fileType == 'docx' || fileType == 'txt') {
+      iconData = fileType == 'pdf' ? Icons.picture_as_pdf : Icons.description;
+      iconColor = fileType == 'pdf' ? Colors.redAccent : Colors.blueAccent;
+    } else if (fileType == 'mp3' || fileType == 'm4a' || fileType == 'wav') {
+      iconData = Icons.graphic_eq;
+      iconColor = Colors.deepPurpleAccent;
+    } else if (fileType == 'mp4' || fileType == 'mov') {
+      iconData = Icons.video_library;
+      iconColor = Colors.orangeAccent;
+    } else {
+      iconData = Icons.insert_drive_file;
+      iconColor = Colors.grey;
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: iconColor.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(iconData, color: iconColor, size: size * 0.5),
+    );
+  }
+
+  void _showDetailModal(BuildContext context, String fileName, String fileType, String fileUrl, String aiSummary) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: CustomScrollView(
-          slivers: [
-            // --- App Bar ---
-            SliverAppBar(
-              floating: true,
-              backgroundColor: cs.surface.withValues(alpha: 0.9),
-              elevation: 0,
-              title: const Text(
-                'Neural Canvas',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24, letterSpacing: -0.5),
-              ),
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                    ).then((_) {
-                      // Trigger a rebuild in case the profile picture was changed
-                      if (mounted) setState(() {});
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: StreamBuilder<User?>(
-                      stream: FirebaseAuth.instance.userChanges(),
-                      builder: (context, snapshot) {
-                        final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
-                        return CircleAvatar(
-                          radius: 16,
-                          backgroundColor: cs.surfaceContainerHighest,
-                          backgroundImage: user?.photoURL != null
-                              ? CachedNetworkImageProvider(user!.photoURL!)
-                              : null,
-                          child: user?.photoURL == null
-                              ? Icon(Icons.person, size: 20, color: cs.onSurfaceVariant)
-                              : null,
-                        );
-                      },
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: cs.surface.withValues(alpha: 0.9),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 16),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: Stack(
-                    children: [
-                      const Icon(Icons.notifications_none_rounded),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444),
-                            shape: BoxShape.circle,
+                  
+                  // Header / File Preview
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _buildFileIcon(fileType, fileUrl, size: 64),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fileName,
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: cs.primaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    fileType.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-
-            // --- Greeting ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getGreeting(),
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 16),
+                  Divider(color: cs.outlineVariant.withValues(alpha: 0.2), height: 1),
+                  
+                  // AI Summary Content
+                  Expanded(
+                    child: Markdown(
+                      data: aiSummary,
+                      padding: const EdgeInsets.all(24),
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(fontSize: 16, color: cs.onSurface, height: 1.6),
+                        h1: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.primary),
+                        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface),
+                        h3: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface),
+                        listBullet: TextStyle(color: cs.primary),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Your memory stream is active.',
-                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-
-            // --- Quick Actions ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _quickActions.map((action) {
-                    return _buildQuickAction(context, action);
-                  }).toList(),
-                ),
-              ),
-            ),
-
-            // --- Section Header ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Memory Reels',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text('See All', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // --- Memory Reel Cards ---
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final reel = _sampleReels[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                    child: _MemoryReelCard(reel: reel),
-                  );
-                },
-                childCount: _sampleReels.length,
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Future<void> _handleImport() async {
     if (_isImporting) return;
-    
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.media,
-        allowMultiple: false,
-      );
+      final result = await FilePicker.platform.pickFiles(type: FileType.media, allowMultiple: false);
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
@@ -298,9 +248,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = file.name;
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+      final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
 
       UploadTask uploadTask;
       if (kIsWeb) {
@@ -313,12 +261,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final mediaUrl = await snapshot.ref.getDownloadURL();
       final ext = file.extension?.toLowerCase() ?? 'unknown';
 
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('knowledge_base')
-          .doc();
-
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
       await docRef.set({
         'fileName': fileName,
         'fileUrl': mediaUrl,
@@ -327,22 +270,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         'aiSummary': 'Processing data...',
       });
 
-      // Fire the asynchronous analyzer immediately
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Asset successfully ingested into your Second Brain!')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset successfully ingested!')));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
     } finally {
-      if (mounted) {
-        setState(() { _isImporting = false; });
-      }
+      if (mounted) setState(() { _isImporting = false; });
     }
   }
 
@@ -354,9 +290,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () {
-              if (action.label == 'Import') {
-                _handleImport();
-              }
+              if (action.label == 'Import') _handleImport();
             },
             child: Container(
               width: 56,
@@ -388,126 +322,218 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning ☀️';
-    if (hour < 17) return 'Good afternoon 🌤️';
-    return 'Good evening 🌙';
-  }
-}
-
-// --- Memory Reel Card ---
-
-class _MemoryReelCard extends StatelessWidget {
-  final MemoryReel reel;
-  const _MemoryReelCard({required this.reel});
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final user = FirebaseAuth.instance.currentUser;
 
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Gradient icon container
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: reel.gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: CustomScrollView(
+          slivers: [
+            // --- App Bar ---
+            SliverAppBar(
+              floating: true,
+              backgroundColor: cs.surface.withValues(alpha: 0.9),
+              elevation: 0,
+              title: const Text('Neural Canvas', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24, letterSpacing: -0.5)),
+              actions: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))
+                        .then((_) { if (mounted) setState(() {}); });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.userChanges(),
+                      builder: (context, snapshot) {
+                        final u = snapshot.data ?? FirebaseAuth.instance.currentUser;
+                        return CircleAvatar(
+                          radius: 16,
+                          backgroundColor: cs.surfaceContainerHighest,
+                          backgroundImage: u?.photoURL != null ? CachedNetworkImageProvider(u!.photoURL!) : null,
+                          child: u?.photoURL == null ? Icon(Icons.person, size: 20, color: cs.onSurfaceVariant) : null,
+                        );
+                      },
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: reel.gradientColors.first.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
-                  child: Icon(reel.icon, color: Colors.white, size: 24),
                 ),
-                const SizedBox(width: 16),
-                // Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                IconButton(
+                  icon: Stack(
                     children: [
-                      Text(
-                        reel.title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        reel.subtitle,
-                        style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildTag(context, reel.category, reel.gradientColors.first),
-                          const SizedBox(width: 8),
-                          Icon(Icons.access_time, size: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-                          const SizedBox(width: 4),
-                          Text(
-                            reel.timeAgo,
-                            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${reel.itemCount} items',
-                            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-                          ),
-                        ],
-                      ),
+                      const Icon(Icons.notifications_none_rounded),
+                      Positioned(right: 0, top: 0, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle))),
                     ],
                   ),
+                  onPressed: () {},
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildTag(BuildContext context, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+            // --- Greeting ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_getGreeting(), style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 4),
+                    Text('Your memory stream is active.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                  ],
+                ),
+              ),
+            ),
+
+            // --- Quick Actions ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: _quickActions.map((action) => _buildQuickAction(context, action)).toList(),
+                ),
+              ),
+            ),
+
+            // --- Memory Reels Feed ---
+            if (user == null)
+              const SliverToBoxAdapter(child: Center(child: Text("Sign in to view Memory Reels.")))
+            else
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('knowledge_base')
+                    .orderBy('uploadedAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) return const SliverToBoxAdapter(child: Center(child: Text('Error loading feed.')));
+                  if (!snapshot.hasData) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())));
+
+                  final allDocs = snapshot.data!.docs;
+                  if (allDocs.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(child: Text("Your memory vault is empty.", style: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)))),
+                      ),
+                    );
+                  }
+
+                  // Cluster logic
+                  Map<String, List<QueryDocumentSnapshot>> clusters = {};
+                  for (var doc in allDocs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final ts = data['uploadedAt'] as Timestamp?;
+                    if (ts == null) continue;
+                    final d = ts.toDate();
+                    final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+                    if (!clusters.containsKey(key)) clusters[key] = [];
+                    clusters[key]!.add(doc);
+                  }
+
+                  final clusterKeys = clusters.keys.toList()..sort((a, b) => b.compareTo(a));
+
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final dateKey = clusterKeys[index];
+                        final items = clusters[dateKey]!;
+                        final firstData = items.first.data() as Map<String, dynamic>;
+                        
+                        final dynamicTitle = _generateReelTitle(
+                          (firstData['aiSummary'] ?? '').toString(),
+                          (firstData['fileType'] ?? '').toString(),
+                        );
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    dynamicTitle,
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                                  ),
+                                  Text(
+                                    "${items.length} items",
+                                    style: TextStyle(fontSize: 13, color: cs.primary, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 140,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: items.length,
+                                itemBuilder: (context, i) {
+                                  final doc = items[i];
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final fileType = data['fileType'] ?? 'unknown';
+                                  final fileUrl = data['fileUrl'] ?? '';
+                                  final fileName = data['fileName'] ?? 'Asset';
+                                  final aiSummary = data['aiSummary'] ?? '';
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(16),
+                                        onTap: () {
+                                          _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
+                                        },
+                                        child: Container(
+                                          width: 140,
+                                          decoration: BoxDecoration(
+                                            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              _buildFileIcon(fileType, fileUrl, size: 80),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                fileName,
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      childCount: clusterKeys.length,
+                    ),
+                  );
+                },
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        ),
       ),
     );
   }

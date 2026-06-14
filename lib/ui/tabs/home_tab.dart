@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../screens/subscription_paywall_screen.dart';
 
 class QuickAction {
   final IconData icon;
@@ -425,6 +426,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleGenerate() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    // Premium Check Lock
+    bool isFreeAccount = true; 
+    if (isFreeAccount) {
+      SubscriptionPaywallScreen.show(context);
+      return;
+    }
     
     showGeneralDialog(
       context: context,

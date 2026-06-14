@@ -10,6 +10,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 
 class QuickAction {
   final IconData icon;
@@ -37,6 +40,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
   bool _isImporting = false;
+  bool _isRecording = false;
+  final _audioRecorder = AudioRecorder();
 
   @override
   void initState() {
@@ -52,6 +57,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   @override
   void dispose() {
     _fadeController.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -282,6 +288,137 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _handleScan() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      if (image == null) return;
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      setState(() { _isImporting = true; });
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = image.name;
+      final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        uploadTask = storageRef.putData(bytes);
+      } else {
+        uploadTask = storageRef.putFile(File(image.path));
+      }
+
+      final snapshot = await uploadTask;
+      final mediaUrl = await snapshot.ref.getDownloadURL();
+      final ext = 'jpg'; // force jpg for camera captures
+
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+      await docRef.set({
+        'fileName': 'Camera Capture',
+        'fileUrl': mediaUrl,
+        'fileType': ext,
+        'uploadedAt': FieldValue.serverTimestamp(),
+        'aiSummary': 'Processing image data...',
+      });
+
+      AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scan successfully ingested!')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan failed: $e')));
+    } finally {
+      if (mounted) setState(() { _isImporting = false; });
+    }
+  }
+
+  Future<void> _handleVoiceNote() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        final Directory appDocumentsDir = await getApplicationDocumentsDirectory();
+        final String filePath = '${appDocumentsDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc), // m4a/aac container
+          path: filePath,
+        );
+        setState(() { _isRecording = true; });
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.mic, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 16),
+                  const Text('Recording Voice Note...', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(context); // Close dialog
+                      final path = await _audioRecorder.stop();
+                      setState(() { _isRecording = false; _isImporting = true; });
+
+                      if (path != null) {
+                        final file = File(path);
+                        final timestamp = DateTime.now().millisecondsSinceEpoch;
+                        final fileName = 'VoiceNote_$timestamp.m4a';
+                        final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/$fileName');
+                        
+                        final uploadTask = storageRef.putFile(file);
+                        final snapshot = await uploadTask;
+                        final mediaUrl = await snapshot.ref.getDownloadURL();
+                        
+                        final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+                        await docRef.set({
+                          'fileName': 'Voice Note',
+                          'fileUrl': mediaUrl,
+                          'fileType': 'm4a',
+                          'uploadedAt': FieldValue.serverTimestamp(),
+                          'aiSummary': 'Transcribing audio...',
+                        });
+
+                        AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, 'm4a');
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Voice note ingested!')));
+                        }
+                      }
+                      if (mounted) setState(() { _isImporting = false; });
+                    },
+                    child: const Text('Stop & Save'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Microphone permission denied.')));
+      }
+    } catch (e) {
+      if (mounted) setState(() { _isRecording = false; _isImporting = false; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recording failed: $e')));
+    }
+  }
+
   Widget _buildQuickAction(BuildContext context, QuickAction action) {
     return Column(
       children: [
@@ -291,6 +428,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(18),
             onTap: () {
               if (action.label == 'Import') _handleImport();
+              if (action.label == 'Scan') _handleScan();
+              if (action.label == 'Voice Note') _handleVoiceNote();
             },
             child: Container(
               width: 56,
@@ -300,7 +439,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: action.color.withValues(alpha: 0.3)),
               ),
-              child: _isImporting && action.label == 'Import'
+              child: ((_isImporting && (action.label == 'Import' || action.label == 'Scan' || action.label == 'Voice Note')) || (_isRecording && action.label == 'Voice Note'))
                   ? Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: CircularProgressIndicator(strokeWidth: 2, color: action.color),

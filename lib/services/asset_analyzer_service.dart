@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
 class AssetAnalyzerService {
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
@@ -60,6 +61,9 @@ class AssetAnalyzerService {
       
       await _updateSummary(docId, aiSummary.trim());
       debugPrint("AssetAnalyzer: Successfully generated summary for $docId");
+      
+      // Secondary pass for Chronos Lens Event Extractor
+      await extractEvents(docId, aiSummary.trim());
         
     } catch (e) {
       debugPrint("AssetAnalyzer failed: $e");
@@ -77,5 +81,51 @@ class AssetAnalyzerService {
         .collection('knowledge_base')
         .doc(docId)
         .update({'aiSummary': summary});
+  }
+
+  static Future<void> extractEvents(String docId, String summaryText) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _geminiApiKey.isEmpty) return;
+
+    final model = GenerativeModel(
+      model: 'gemini-2.5-flash',
+      apiKey: _geminiApiKey,
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+      ),
+    );
+
+    try {
+      final prompt = """
+Analyze the following text for any identifiable timeline variables or scheduled events (e.g., meeting dates, locations, calendar slots, appointment confirmations).
+If events are found, return a JSON array of objects, where each object has these strictly named string keys: "eventTitle", "eventDateTime", "eventLocation".
+If no events are found, return an empty JSON array [].
+
+Text: $summaryText
+""";
+      final response = await model.generateContent([Content.text(prompt)]);
+      if (response.text != null) {
+        final List<dynamic> events = jsonDecode(response.text!);
+        if (events.isNotEmpty) {
+          final batch = FirebaseFirestore.instance.batch();
+          final eventsRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('upcoming_events');
+          
+          for (var event in events) {
+            final newDoc = eventsRef.doc();
+            batch.set(newDoc, {
+              'sourceDocId': docId,
+              'eventTitle': event['eventTitle']?.toString() ?? 'Unknown Event',
+              'eventDateTime': event['eventDateTime']?.toString() ?? 'TBD',
+              'eventLocation': event['eventLocation']?.toString() ?? 'TBD',
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
+          debugPrint("AssetAnalyzer: Successfully extracted \${events.length} events for $docId");
+        }
+      }
+    } catch (e) {
+      debugPrint("AssetAnalyzer event extraction failed: $e");
+    }
   }
 }

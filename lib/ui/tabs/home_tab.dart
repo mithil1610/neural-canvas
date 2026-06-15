@@ -19,6 +19,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../screens/subscription_paywall_screen.dart';
+import '../screens/reel_storyboard_screen.dart';
 
 class QuickAction {
   final IconData icon;
@@ -685,6 +686,78 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               ),
             ),
 
+            // --- Upcoming Events Strip (Chronos Lens) ---
+            if (user != null)
+              SliverToBoxAdapter(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .collection('upcoming_events')
+                      .orderBy('createdAt', descending: true)
+                      .limit(3)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const SizedBox(); // Hide if no events
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Upcoming Timeline Coordinates",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 48,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: snapshot.data!.docs.length,
+                              separatorBuilder: (context, index) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                                final title = data['eventTitle'] ?? 'Event';
+                                final time = data['eventDateTime'] ?? 'TBD';
+                                final location = data['eventLocation'] ?? 'TBD';
+
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF10B981)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "$title • $time • $location",
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
             // --- Memory Reels Feed ---
             if (user == null)
               const SliverToBoxAdapter(child: Center(child: Text("Sign in to view Memory Reels.")))
@@ -744,13 +817,40 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    dynamicTitle,
-                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                                  Expanded(
+                                    child: Text(
+                                      dynamicTitle,
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  Text(
-                                    "${items.length} items",
-                                    style: TextStyle(fontSize: 13, color: cs.primary, fontWeight: FontWeight.w600),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.play_circle_outline, size: 16, color: Color(0xFFA78BFA)),
+                                          SizedBox(width: 4),
+                                          Text("Play Storyboard", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFA78BFA))),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),

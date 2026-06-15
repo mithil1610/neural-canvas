@@ -251,29 +251,35 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleImport() async {
     if (_isImporting) return;
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.media, allowMultiple: false);
-      if (result == null || result.files.isEmpty) return;
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 75,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      if (image == null) return;
 
-      final file = result.files.first;
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
       setState(() { _isImporting = true; });
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = file.name;
+      final fileName = image.name;
       final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
 
       UploadTask uploadTask;
       if (kIsWeb) {
-        uploadTask = storageRef.putData(file.bytes!);
+        final bytes = await image.readAsBytes();
+        uploadTask = storageRef.putData(bytes);
       } else {
-        uploadTask = storageRef.putFile(File(file.path!));
+        uploadTask = storageRef.putFile(File(image.path));
       }
 
       final snapshot = await uploadTask;
       final mediaUrl = await snapshot.ref.getDownloadURL();
-      final ext = file.extension?.toLowerCase() ?? 'unknown';
+      final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : 'unknown';
 
       final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
       await docRef.set({
@@ -299,7 +305,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleScan() async {
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 75,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
       if (image == null) return;
 
       final user = FirebaseAuth.instance.currentUser;

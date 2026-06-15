@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -38,27 +39,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_user == null) return;
 
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 75,
+        maxWidth: 1920,
+        maxHeight: 1080,
       );
 
-      if (result == null || result.files.isEmpty) return;
+      if (image == null) return;
 
       setState(() {
         _isUploading = true;
       });
 
-      final file = result.files.first;
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('users/${_user.uid}/profile_pic/avatar.jpg');
 
       UploadTask uploadTask;
       if (kIsWeb) {
-        uploadTask = storageRef.putData(file.bytes!);
+        final bytes = await image.readAsBytes();
+        uploadTask = storageRef.putData(bytes);
       } else {
-        uploadTask = storageRef.putFile(File(file.path!));
+        uploadTask = storageRef.putFile(File(image.path));
       }
 
       final snapshot = await uploadTask;

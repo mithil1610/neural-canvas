@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_lucide: ^1.11.0
   receive_sharing_intent: ^1.8.1
+  local_auth: ^2.3.0
   flutter_markdown: ^0.7.7+1
   firebase_core: ^4.10.0
   firebase_auth: ^6.5.2

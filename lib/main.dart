@@ -11,6 +11,8 @@ import 'package:neural_canvas/screens/chat_history_screen.dart';
 import 'package:neural_canvas/services/share_receiver_service.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
+import 'package:local_auth/local_auth.dart';
+import 'dart:ui';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
@@ -74,6 +76,8 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  final LocalAuthentication auth = LocalAuthentication();
+  bool _isUnlocked = false;
 
   @override
   void initState() {
@@ -81,6 +85,24 @@ class _MainShellState extends State<MainShell> {
     // Begin listening for shared files the absolute second the app boots up
     ShareReceiverService().initialize(navigatorKey);
     globalTabController.addListener(_onTabChanged);
+    _authenticateBiometrics();
+  }
+
+  Future<void> _authenticateBiometrics() async {
+    try {
+      bool authenticated = await auth.authenticate(
+        localizedReason: 'Authenticate matrix access to unlock your Second Brain',
+        options: const AuthenticationOptions(stickyAuth: true, biometricOnly: true),
+      );
+      if (authenticated) {
+        setState(() {
+          _isUnlocked = true;
+        });
+      }
+    } catch (e) {
+      debugPrint("Biometric failure or bypass: $e");
+      // Allow standard fallback behavior pin if necessary
+    }
   }
 
   void _onTabChanged() {
@@ -115,6 +137,58 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isUnlocked) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+          ),
+          child: Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Matrix Locked',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: _authenticateBiometrics,
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Tap to Unlock'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),

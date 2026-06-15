@@ -65,5 +65,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Neural Canvas requires secure biometric access to unlock your encrypted personal knowledge matrix vaults.</string>
 </dict>
 </plist>

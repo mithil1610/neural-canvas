@@ -1226,17 +1226,19 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         TextButton.icon(
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: _generatedContent));
-                            UIUtils.showFloatingSnackBar(context, 'Copied to clipboard!');
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: _generatedContent));
+                            if (context.mounted) {
+                              UIUtils.showFloatingSnackBar(context, 'Copied securely to clipboard!');
+                            }
                           },
                           icon: const Icon(Icons.copy, size: 18),
                           label: const Text('Copy Text'),
                         ),
                         TextButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             // ignore: deprecated_member_use
-                            Share.share(_generatedContent);
+                            await Share.share(_generatedContent, subject: 'My Neural Canvas Insight');
                           },
                           icon: const Icon(Icons.share, size: 18),
                           label: const Text('Share Narrative'),

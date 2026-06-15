@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/screens/auth_gate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../utils/ui_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -80,15 +81,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _user.reload();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture synchronized successfully!')),
-        );
+        UIUtils.showFloatingSnackBar(context, 'Profile picture synchronized successfully!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update picture: $e')),
-        );
+        UIUtils.showFloatingSnackBar(context, 'Failed to update picture: $e');
       }
     } finally {
       if (mounted) {
@@ -119,15 +116,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _user.reload();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile metadata synchronized successfully!')),
-        );
+        UIUtils.showFloatingSnackBar(context, 'Profile metadata synchronized successfully!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
+        UIUtils.showFloatingSnackBar(context, 'Failed to update profile: $e');
       }
     } finally {
       if (mounted) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:neural_canvas/models/chat_session.dart';
+import 'package:neural_canvas/utils/ui_utils.dart';
 
 class ChatHistoryScreen extends StatelessWidget {
   final Function(String) onSessionSelected;
@@ -121,16 +122,14 @@ class ChatHistoryScreen extends StatelessWidget {
                   chatRef.delete();
                   
                   ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Chat deleted'),
-                      duration: const Duration(seconds: 3),
-                      action: SnackBarAction(
-                        label: 'Undo',
-                        onPressed: () {
-                          chatRef.set(chatData);
-                        },
-                      ),
+                  UIUtils.showFloatingSnackBar(
+                    context, 
+                    'Chat deleted',
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      onPressed: () {
+                        chatRef.set(chatData);
+                      },
                     ),
                   );
                 },

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../utils/ui_utils.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -81,7 +82,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
           _isSearching = false;
           _isSemanticSearchActive = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Semantic search failed: $e')));
+        UIUtils.showFloatingSnackBar(context, 'Semantic search failed: $e');
       }
     }
   }
@@ -345,11 +346,11 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
           .delete();
           
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset deleted')));
+        UIUtils.showFloatingSnackBar(context, 'Asset deleted');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete asset: $e')));
+        UIUtils.showFloatingSnackBar(context, 'Failed to delete asset: $e');
       }
     }
   }

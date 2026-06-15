@@ -68,9 +68,7 @@ class _ChatTabState extends State<ChatTab> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please sign in first.')));
+        UIUtils.showFloatingSnackBar(context, 'Please sign in first.');
       }
       return;
     }
@@ -87,9 +85,7 @@ class _ChatTabState extends State<ChatTab> {
 
     if (attachment != null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Uploading attachment...')),
-        );
+        UIUtils.showFloatingSnackBar(context, 'Uploading attachment...');
       }
 
       try {
@@ -119,9 +115,7 @@ class _ChatTabState extends State<ChatTab> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+          UIUtils.showFloatingSnackBar(context, 'Upload failed: $e');
         }
         return;
       }
@@ -311,7 +305,7 @@ class _ChatTabState extends State<ChatTab> {
           });
     }
 
-    if (historySnapshot.docs.length == 3) {
+    if (historySnapshot.docs.length == 1) { // 1 User msg (AI msg just added) -> Total 2
       updateChatSessionTitle(activeChatId);
     }
 
@@ -330,7 +324,7 @@ class _ChatTabState extends State<ChatTab> {
           .doc(chatId)
           .collection('messages')
           .orderBy('timestamp', descending: false)
-          .limit(3)
+          .limit(2)
           .get();
 
       String openingMessagesContent = messagesSnapshot.docs.map((d) {
@@ -376,9 +370,7 @@ class _ChatTabState extends State<ChatTab> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to pick file: $e')));
+      UIUtils.showFloatingSnackBar(context, 'Failed to pick file: $e');
     }
   }
 

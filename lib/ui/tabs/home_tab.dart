@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../screens/subscription_paywall_screen.dart';
 
@@ -284,10 +285,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset successfully ingested!')));
+        UIUtils.showFloatingSnackBar(context, 'Asset successfully ingested!');
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
     } finally {
       if (mounted) setState(() { _isImporting = false; });
     }
@@ -332,10 +333,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scan successfully ingested!')));
+        UIUtils.showFloatingSnackBar(context, 'Scan successfully ingested!');
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan failed: $e')));
+      if (mounted) UIUtils.showFloatingSnackBar(context, 'Scan failed: $e');
     } finally {
       if (mounted) setState(() { _isImporting = false; });
     }
@@ -403,7 +404,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, 'm4a');
 
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Voice note ingested!')));
+                          UIUtils.showFloatingSnackBar(context, 'Voice note ingested!');
                         }
                       }
                       if (mounted) setState(() { _isImporting = false; });
@@ -416,11 +417,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
         }
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Microphone permission denied.')));
+        if (mounted) UIUtils.showFloatingSnackBar(context, 'Microphone permission denied.');
       }
     } catch (e) {
       if (mounted) setState(() { _isRecording = false; _isImporting = false; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recording failed: $e')));
+      if (mounted) UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
     }
   }
 
@@ -894,7 +895,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                         TextButton.icon(
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: _generatedContent));
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied to clipboard!')));
+                            UIUtils.showFloatingSnackBar(context, 'Copied to clipboard!');
                           },
                           icon: const Icon(Icons.copy, size: 18),
                           label: const Text('Copy Text'),

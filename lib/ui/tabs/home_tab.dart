@@ -33,6 +33,7 @@ const List<QuickAction> _quickActions = [
   QuickAction(icon: Icons.mic_none, label: 'Voice Note', color: Color(0xFFA78BFA)),
   QuickAction(icon: Icons.upload_file_outlined, label: 'Import', color: Color(0xFF0EA5E9)),
   QuickAction(icon: Icons.auto_awesome, label: 'Generate', color: Color(0xFFF59E0B)),
+  QuickAction(icon: Icons.paste_outlined, label: 'Paste Text', color: Color(0xFF10B981)),
 ];
 
 class HomeTab extends StatefulWidget {
@@ -424,6 +425,108 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _handlePasteText() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final TextEditingController textController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 24),
+              const Text('Paste Text', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                maxLines: 8,
+                minLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Paste or type your notes here...',
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () async {
+                    final rawText = textController.text.trim();
+                    if (rawText.isEmpty) return;
+                    
+                    Navigator.pop(sheetContext);
+                    setState(() { _isImporting = true; });
+
+                    try {
+                      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+                      await docRef.set({
+                        'fileName': 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt',
+                        'fileUrl': '',
+                        'fileType': 'text',
+                        'uploadedAt': FieldValue.serverTimestamp(),
+                        'aiSummary': rawText,
+                      });
+
+                      if (mounted) UIUtils.showFloatingSnackBar(context, 'Text note ingested! Enhancing...');
+                      
+                      // Fire off background enhancement
+                      _enhanceTextNode(docRef, rawText);
+                    } catch (e) {
+                      if (mounted) UIUtils.showFloatingSnackBar(context, 'Failed to save text: $e');
+                    } finally {
+                      if (mounted) setState(() { _isImporting = false; });
+                    }
+                  },
+                  child: const Text('Ingest Text Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _enhanceTextNode(DocumentReference docRef, String rawText) async {
+    const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (geminiApiKey.isEmpty) return;
+
+    try {
+      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: geminiApiKey);
+      final prompt = "Analyze this raw text. Extract key themes and rewrite it into a highly optimized, structured summary. Return ONLY the summary.\n\nText: $rawText";
+      final response = await model.generateContent([Content.text(prompt)]);
+      
+      if (response.text != null && response.text!.isNotEmpty) {
+        await docRef.update({'aiSummary': response.text!.trim()});
+      }
+    } catch (e) {
+      debugPrint('Failed to enhance text node: $e');
+    }
+  }
+
   Future<void> _handleGenerate() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -472,6 +575,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               if (action.label == 'Scan') _handleScan();
               if (action.label == 'Voice Note') _handleVoiceNote();
               if (action.label == 'Generate') _handleGenerate();
+              if (action.label == 'Paste Text') _handlePasteText();
             },
             child: Container(
               width: 56,

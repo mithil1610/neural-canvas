@@ -8,7 +8,7 @@ class UIUtils {
           message,
           style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
         ),
-        backgroundColor: Colors.black.withOpacity(0.85),
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
         behavior: SnackBarBehavior.floating,
         margin: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 24, right: 24),
         duration: const Duration(seconds: 3),

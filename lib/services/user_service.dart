@@ -8,7 +8,7 @@ class UserService {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (userDoc.exists) {
         final data = userDoc.data();
-        if (data != null && (data['isPro'] == true || data['accountTier'] != null || data['subscriptionTier'] != null)) {
+        if (data != null && (data['isPro'] == true || data['accountTier'] == 'pro' || data['accountTier'] == 'premium')) {
           return true;
         }
       }

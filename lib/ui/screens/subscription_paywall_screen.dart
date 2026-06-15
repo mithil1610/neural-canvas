@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../utils/ui_utils.dart';
 
-class SubscriptionPaywallScreen extends StatelessWidget {
+class SubscriptionPaywallScreen extends StatefulWidget {
   const SubscriptionPaywallScreen({super.key});
 
   static void show(BuildContext context) {
@@ -13,6 +16,38 @@ class SubscriptionPaywallScreen extends StatelessWidget {
     );
   }
 
+  @override
+  State<SubscriptionPaywallScreen> createState() => _SubscriptionPaywallScreenState();
+}
+
+class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
+  bool _isPurchasing = false;
+
+  Future<void> _simulatePurchase(String targetTier) async {
+    setState(() {
+      _isPurchasing = true;
+    });
+
+    // Sandbox 1.5s delay
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'accountTier': targetTier,
+      });
+    }
+
+    if (!mounted) return;
+    
+    setState(() {
+      _isPurchasing = false;
+    });
+
+    UIUtils.showFloatingSnackBar(context, "Premium Matrix Link Activated Successfully!");
+    Navigator.of(context).pop();
+  }
+
   Widget _buildTierCard({
     required BuildContext context,
     required String title,
@@ -20,28 +55,31 @@ class SubscriptionPaywallScreen extends StatelessWidget {
     required String description,
     required IconData icon,
     bool isPopular = false,
+    VoidCallback? onTap,
   }) {
     final cs = Theme.of(context).colorScheme;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isPopular ? cs.primaryContainer.withValues(alpha: 0.15) : cs.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isPopular ? cs.primary : cs.outlineVariant.withValues(alpha: 0.2),
-          width: isPopular ? 2 : 1,
+    return GestureDetector(
+      onTap: _isPurchasing ? null : onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isPopular ? cs.primaryContainer.withValues(alpha: 0.15) : cs.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isPopular ? cs.primary : cs.outlineVariant.withValues(alpha: 0.2),
+            width: isPopular ? 2 : 1,
+          ),
+          boxShadow: isPopular ? [
+            BoxShadow(
+              color: cs.primary.withValues(alpha: 0.2),
+              blurRadius: 16,
+              spreadRadius: 2,
+            )
+          ] : [],
         ),
-        boxShadow: isPopular ? [
-          BoxShadow(
-            color: cs.primary.withValues(alpha: 0.2),
-            blurRadius: 16,
-            spreadRadius: 2,
-          )
-        ] : [],
-      ),
-      child: Stack(
-        children: [
+        child: Stack(
+          children: [
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -118,7 +156,7 @@ class SubscriptionPaywallScreen extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ));
   }
 
   @override
@@ -212,24 +250,33 @@ class SubscriptionPaywallScreen extends StatelessWidget {
                         _buildTierCard(
                           context: context,
                           title: 'Creation Engine',
-                          price: '\$9.99/mo',
+                          price: '\$19.99/mo',
                           description: 'Unlocks advanced AI editing, unlimited narrative generation, and auto-reels.',
                           icon: Icons.auto_awesome,
                           isPopular: true,
+                          onTap: () => _simulatePurchase('pro'),
                         ),
                         _buildTierCard(
                           context: context,
                           title: 'Infinite Brain',
-                          price: '\$19.99/mo',
+                          price: '\$49.99/mo',
                           description: 'Unlocks long-term deep personalization models, full cross-format graph mapping, and max storage.',
                           icon: Icons.all_inclusive,
+                          onTap: () => _simulatePurchase('premium'),
+                        ),
+                        _buildTierCard(
+                          context: context,
+                          title: 'Enterprise Nexus',
+                          price: 'Contact Us',
+                          description: 'Unlocks secure cross-employee shared institutional memory vaults and team knowledge-graph routing. Coming soon.',
+                          icon: Icons.business,
                         ),
                         
                         const SizedBox(height: 32),
                         
                         // Action Button
                         ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: _isPurchasing ? null : () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: cs.primary,
                             foregroundColor: Colors.black,
@@ -271,6 +318,41 @@ class SubscriptionPaywallScreen extends StatelessWidget {
                 ],
               ),
             ),
+            if (_isPurchasing)
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: cs.primary),
+                            const SizedBox(height: 24),
+                            Text(
+                              "Contacting App Store\nsecure sandbox gateway...",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

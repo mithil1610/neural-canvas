@@ -11,7 +11,6 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../utils/ui_utils.dart';
 
 class ChatTab extends StatefulWidget {

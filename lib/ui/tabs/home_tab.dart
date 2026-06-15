@@ -403,9 +403,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
                         AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, 'm4a');
 
-                        if (mounted) {
-                          UIUtils.showFloatingSnackBar(context, 'Voice note ingested!');
-                        }
+                        if (!mounted) return;
+                        UIUtils.showFloatingSnackBar(context, 'Voice note ingested!');
                       }
                       if (mounted) setState(() { _isImporting = false; });
                     },

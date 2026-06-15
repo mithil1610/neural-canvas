@@ -59,6 +59,97 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
     _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
     _fadeController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkCompliance();
+    });
+  }
+
+  Future<void> _checkCompliance() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && !data.containsKey('legalCompliance')) {
+          if (!mounted) return;
+          _showLegacyComplianceModal();
+        }
+      }
+    } catch (e) {
+      debugPrint("Compliance check error: $e");
+    }
+  }
+
+  void _showLegacyComplianceModal() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.5,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Updated Legal Policies',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        "We've updated our Terms of Service and Privacy Policy.\n\nBy continuing to use Neural Canvas, you agree to our Terms and consent to your uploaded assets being securely processed via cloud AI models.",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                          'legalCompliance': {
+                            'agreedToTermsAndPrivacy': true,
+                            'consentTimestamp': FieldValue.serverTimestamp(),
+                            'regulatoryScope': 'Global_v1'
+                          }
+                        }, SetOptions(merge: true));
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('I Agree'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -695,11 +786,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     String? name;
                     if (snapshot.hasData && snapshot.data!.exists) {
                       final data = snapshot.data!.data() as Map<String, dynamic>?;
-                      name = data?['fullName'] as String?;
-                      name ??= FirebaseAuth.instance.currentUser?.displayName;
-                    } else {
-                      name = FirebaseAuth.instance.currentUser?.displayName;
-                    }
+                      if (data != null) {
+                        name = data['fullName'] as String? ?? (data['email'] != null ? data['email'].split('@')[0] : 'Explorer');
+                      }
+                    } 
+                    name ??= FirebaseAuth.instance.currentUser?.displayName;
+                    
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

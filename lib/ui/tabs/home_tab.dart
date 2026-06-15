@@ -361,7 +361,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => AlertDialog(
+            builder: (dialogContext) => AlertDialog(
               backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               content: Column(
@@ -378,7 +378,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () async {
-                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(dialogContext); // Close dialog
                       final path = await _audioRecorder.stop();
                       setState(() { _isRecording = false; _isImporting = true; });
 

@@ -275,11 +275,11 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Divider(color: cs.outlineVariant.withValues(alpha: 0.2), height: 32),
-                          Text('Connected Graph Coordinates', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                          const Divider(height: 40, color: Colors.white24),
+                          const Text("CONNECTED MEMORY GRAPH", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white60)),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 64,
+                            height: 100,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
                               itemCount: connectedDocs.length,
@@ -293,22 +293,35 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
 
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 12),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(32),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
-                                      },
-                                      child: Tooltip(
-                                        message: cName,
-                                        child: ClipOval(
-                                          child: Container(
-                                            color: cs.surfaceContainerHighest,
-                                            child: _buildFileIcon(cType, cUrl, size: 56),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
+                                    },
+                                    child: Container(
+                                      width: 90,
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          _buildFileIcon(cType, cUrl, size: 40),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            cName,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: cs.onSurfaceVariant,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
                                           ),
-                                        ),
+                                        ],
                                       ),
                                     ),
                                   ),

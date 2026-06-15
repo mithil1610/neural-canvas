@@ -68,11 +68,26 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  String _getGreeting() {
+  String _getGreeting([String? name]) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning ☀️';
-    if (hour < 17) return 'Good afternoon 🌤️';
-    return 'Good evening 🌙';
+    String greeting;
+    String emoji;
+    if (hour < 12) {
+      greeting = 'Good morning';
+      emoji = '☀️';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon';
+      emoji = '🌤️';
+    } else {
+      greeting = 'Good evening';
+      emoji = '🌙';
+    }
+
+    if (name != null && name.trim().isNotEmpty) {
+      final firstName = name.trim().split(' ').first;
+      return '$greeting, $firstName $emoji';
+    }
+    return '$greeting $emoji';
   }
 
   // Generate dynamic title from AI summary
@@ -674,13 +689,26 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_getGreeting(), style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 4),
-                    Text('Your memory stream is active.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
-                  ],
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseAuth.instance.currentUser != null ? FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots() : null,
+                  builder: (context, snapshot) {
+                    String? name;
+                    if (snapshot.hasData && snapshot.data!.exists) {
+                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+                      name = data?['fullName'] as String?;
+                      name ??= FirebaseAuth.instance.currentUser?.displayName;
+                    } else {
+                      name = FirebaseAuth.instance.currentUser?.displayName;
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_getGreeting(name), style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text('Your memory stream is active.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

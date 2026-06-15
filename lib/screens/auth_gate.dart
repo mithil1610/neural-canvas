@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:ui';
 import 'package:neural_canvas/main.dart' show MainShell;
+import '../utils/ui_utils.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -14,10 +16,92 @@ class _AuthGateState extends State<AuthGate> {
   bool _isLogin = true;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool _hasAgreedToPolicies = false;
   bool _isLoading = false;
   String? _errorMessage;
 
+  void _showLegalModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 16),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Legal & Privacy Policies',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        "Terms of Service\n\nWelcome to Neural Canvas. By using this service, you agree to these terms.\n\nPrivacy Policy\n\nYour privacy is important to us. Your data, including uploaded assets, is securely processed via cloud AI models to provide you with insights and organizational intelligence. We do not sell your personal data. All data is scoped to your account and managed according to Global_v1 regulatory compliance standards.\n\n(This is a template privacy terms document).",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _submit() async {
+    if (!_isLogin && !_hasAgreedToPolicies) {
+      UIUtils.showFloatingSnackBar(context, "You must accept the privacy policies to create an account.");
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -39,11 +123,27 @@ class _AuthGateState extends State<AuthGate> {
 
       // Verify and create the base user profile document
       if (userCredential.user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-          'email': userCredential.user!.email,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastLoginAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        if (!_isLogin) {
+          await userCredential.user!.updateDisplayName(_nameController.text.trim());
+          
+          await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+            'uid': userCredential.user!.uid,
+            'fullName': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'accountTier': 'free',
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLoginAt': FieldValue.serverTimestamp(),
+            'legalCompliance': {
+              'agreedToTermsAndPrivacy': true,
+              'consentTimestamp': FieldValue.serverTimestamp(),
+              'regulatoryScope': 'Global_v1'
+            }
+          });
+        } else {
+          await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -62,6 +162,7 @@ class _AuthGateState extends State<AuthGate> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -110,6 +211,21 @@ class _AuthGateState extends State<AuthGate> {
                         ),
                   ),
                   const SizedBox(height: 48),
+                  if (!_isLogin) ...[
+                    TextField(
+                      controller: _nameController,
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -141,6 +257,65 @@ class _AuthGateState extends State<AuthGate> {
                         color: Theme.of(context).colorScheme.error,
                       ),
                       textAlign: TextAlign.center,
+                    ),
+                  ],
+                  if (!_isLogin) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Checkbox(
+                            value: _hasAgreedToPolicies,
+                            onChanged: (val) {
+                              setState(() {
+                                _hasAgreedToPolicies = val ?? false;
+                              });
+                            },
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _showLegalModal(context),
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'I agree to the ',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  height: 1.4,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: 'Terms of Service',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' and '),
+                                  TextSpan(
+                                    text: 'Privacy Policy',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                  const TextSpan(
+                                    text: ', and consent to my uploaded assets being securely processed via cloud AI models.',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                   const SizedBox(height: 24),

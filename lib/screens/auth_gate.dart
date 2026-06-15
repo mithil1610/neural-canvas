@@ -308,7 +308,7 @@ class _AuthGateState extends State<AuthGate> {
                                     ),
                                   ),
                                   const TextSpan(
-                                    text: ', and consent to my uploaded assets being securely processed via cloud AI models.',
+                                    text: '. I consent to my uploaded assets being securely processed via cloud AI models, and acknowledge that optional biometric device authentication is executed entirely locally on my device by the operating system and is never collected or stored by Neural Canvas.',
                                   ),
                                 ],
                               ),

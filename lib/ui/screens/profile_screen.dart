@@ -134,6 +134,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _deleteStorageFolder(Reference ref) async {
+    try {
+      final listResult = await ref.listAll();
+      for (var item in listResult.items) {
+        await item.delete();
+      }
+      for (var prefix in listResult.prefixes) {
+        await _deleteStorageFolder(prefix);
+      }
+    } catch (e) {
+      debugPrint("Storage delete folder error: $e");
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account & Purge Vault'),
+        content: const Text('This action is irreversible. All your data, uploads, and knowledge graphs will be permanently erased. Proceed?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Purge', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // Step A: Storage
+      await _deleteStorageFolder(FirebaseStorage.instance.ref().child('users/$uid'));
+
+      // Step B: Firestore sub-collections
+      final collections = ['knowledge_base', 'upcoming_events', 'chats'];
+      for (var coll in collections) {
+        try {
+          final snapshot = await FirebaseFirestore.instance.collection('users').doc(uid).collection(coll).get();
+          for (var doc in snapshot.docs) {
+            await doc.reference.delete();
+          }
+        } catch (e) {
+          debugPrint("Firestore sub-collection $coll delete error: $e");
+        }
+      }
+
+      // Step C: Remove user profile document
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      } catch (e) {
+        debugPrint("Firestore doc delete error: $e");
+      }
+
+      // Step D: Permanently delete auth credentials
+      await user.delete();
+
+      // Step E: Pop to clean landing screen
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AuthGate()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        UIUtils.showFloatingSnackBar(context, 'Failed to purge account: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,6 +331,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     icon: const Icon(Icons.logout, color: Colors.redAccent),
                     label: const Text('Sign Out / Log Out', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton(
+                    onPressed: _isSaving ? null : _deleteAccount,
+                    child: const Text(
+                      'Delete Account & Purge Vault',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ),
                 ],
               ),

@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../screens/subscription_paywall_screen.dart';
@@ -163,23 +164,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   String _getGreeting([String? name]) {
     final hour = DateTime.now().hour;
     String greeting;
-    String emoji;
     if (hour < 12) {
       greeting = 'Good morning';
-      emoji = '☀️';
     } else if (hour < 17) {
       greeting = 'Good afternoon';
-      emoji = '🌤️';
     } else {
       greeting = 'Good evening';
-      emoji = '🌙';
     }
 
     if (name != null && name.trim().isNotEmpty) {
       final firstName = name.trim().split(' ').first;
-      return '$greeting, $firstName $emoji';
+      return '$greeting, $firstName';
     }
-    return '$greeting $emoji';
+    return greeting;
   }
 
   // Generate dynamic title from AI summary
@@ -796,7 +793,33 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_getGreeting(name), style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+                        Row(
+                          children: [
+                            Text(
+                              _getGreeting(name),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Lottie.network(
+                              DateTime.now().hour < 17
+                                  ? 'https://assets9.lottiefiles.com/packages/lf20_stq51uud.json' // Day/Sun
+                                  : 'https://assets3.lottiefiles.com/packages/lf20_KqXhQY.json', // Moon/Night
+                              width: 32,
+                              height: 32,
+                              animate: true,
+                              repeat: true,
+                              errorBuilder: (context, error, stackTrace) => Text(
+                                DateTime.now().hour < 17 ? '☀️' : '🌙',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         Text('Your memory stream is active.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
                       ],

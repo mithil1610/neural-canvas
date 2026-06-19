@@ -15,6 +15,7 @@ import 'package:neural_canvas/services/notification_service.dart';
 import 'package:neural_canvas/ui/screens/chronos_matrix_screen.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -57,16 +58,15 @@ class NeuralCanvasApp extends StatelessWidget {
           onPrimary: Colors.white,
           secondary: Color(0xFFA78BFA), // Violet 400
           onSecondary: Colors.white,
-          surface: Color(0xFF0F172A), // Slate 900
+          surface: Color(0xFF0A0A0E), // Deep background
           onSurface: Color(0xFFF8FAFC), // Slate 50
           surfaceContainerHighest: Color(0xFF1E293B), // Slate 800
           surfaceContainerHigh: Color(0xFF334155), // Slate 700
           surfaceContainerLow: Color(0xFF0B1120), // Slate 950
           outlineVariant: Color(0xFF475569), // Slate 600
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
-        fontFamily:
-            'Inter', // Assuming standard system font if Inter isn't loaded
+        scaffoldBackgroundColor: const Color(0xFF0A0A0E), // Deep background
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
       ),
       routes: {
         '/chronosMatrix': (context) => const ChronosMatrixScreen(),

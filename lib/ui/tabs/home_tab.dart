@@ -983,6 +983,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         final fileType = data['fileType'] ?? 'unknown';
                         final fileUrl = data['fileUrl'] ?? '';
                         final fileName = data['fileName'] ?? 'Asset';
+                        final smartTitle = data['smartTitle'] ?? fileName;
                         final aiSummary = data['aiSummary'] ?? '';
 
                         return Material(
@@ -1003,7 +1004,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                   _buildFileIcon(fileType, fileUrl, size: 48),
                                   const SizedBox(height: 8),
                                   Text(
-                                    fileName,
+                                    smartTitle,
                                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

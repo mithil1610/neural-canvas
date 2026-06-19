@@ -17,7 +17,7 @@ class AssetAnalyzerService {
     
     if (_geminiApiKey.isEmpty) {
       debugPrint("AssetAnalyzer: GEMINI_API_KEY is missing. Cannot perform AI analysis.");
-      await _updateSummary(docId, "AI Analysis unavailable (Missing API Key)");
+      await _updateSummaryAndTitle(docId, "AI Analysis unavailable (Missing API Key)", _fallbackTitle());
       return;
     }
 
@@ -46,6 +46,8 @@ class AssetAnalyzerService {
         systemPrompt = 'Perform an image analysis. Read any overlay text via OCR, detect visible objects, actions, human expressions, emotional mood, and summarize the overall context.';
       }
 
+      systemPrompt += ' Additionally, generate a highly contextual, punchy title (maximum 5 words) that perfectly describes this asset. Format your response strictly as JSON: { "title": "...", "summary": "..." }';
+
       final response = await http.get(Uri.parse(fileUrl));
       final bytes = response.bodyBytes;
       
@@ -57,21 +59,53 @@ class AssetAnalyzerService {
       ];
       
       final responseGemini = await model.generateContent(content);
-      aiSummary = responseGemini.text ?? "Could not extract meaning from asset.";
+      final rawText = responseGemini.text ?? "{}";
       
-      await _updateSummary(docId, aiSummary.trim());
-      debugPrint("AssetAnalyzer: Successfully generated summary for $docId");
+      String titleToSave;
+      String summaryToSave = "Could not extract meaning from asset.";
+
+      try {
+        String jsonText = rawText;
+        if (jsonText.contains('```json')) {
+            jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.contains('{')) {
+            jsonText = jsonText.substring(jsonText.indexOf('{'), jsonText.lastIndexOf('}') + 1);
+        }
+        final Map<String, dynamic> parsed = jsonDecode(jsonText);
+        titleToSave = parsed['title']?.toString() ?? _fallbackTitle();
+        if (parsed['summary'] != null) {
+          summaryToSave = parsed['summary'].toString();
+        } else {
+          summaryToSave = rawText.trim();
+        }
+      } catch (e) {
+         titleToSave = _fallbackTitle();
+         summaryToSave = rawText.trim();
+      }
+
+      await _updateSummaryAndTitle(docId, summaryToSave, titleToSave);
+      debugPrint("AssetAnalyzer: Successfully generated summary and title for $docId");
       
       // Secondary pass for Chronos Lens Event Extractor
-      await extractEvents(docId, aiSummary.trim());
+      await extractEvents(docId, summaryToSave);
         
     } catch (e) {
       debugPrint("AssetAnalyzer failed: $e");
-      await _updateSummary(docId, "Analysis encountered an error.");
+      await _updateSummaryAndTitle(docId, "Analysis encountered an error.", _fallbackTitle());
     }
   }
 
-  static Future<void> _updateSummary(String docId, String summary) async {
+  static String _fallbackTitle() {
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final amPm = now.hour >= 12 ? 'PM' : 'AM';
+    int hr = now.hour % 12;
+    if (hr == 0) hr = 12;
+    final min = now.minute.toString().padLeft(2, '0');
+    return "Note • ${months[now.month - 1]} ${now.day}, $hr:$min $amPm";
+  }
+
+  static Future<void> _updateSummaryAndTitle(String docId, String summary, String title) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     
@@ -80,7 +114,10 @@ class AssetAnalyzerService {
         .doc(user.uid)
         .collection('knowledge_base')
         .doc(docId)
-        .update({'aiSummary': summary});
+        .update({
+          'aiSummary': summary,
+          'smartTitle': title,
+        });
   }
 
   static Future<void> extractEvents(String docId, String summaryText) async {

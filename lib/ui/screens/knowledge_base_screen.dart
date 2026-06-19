@@ -55,7 +55,9 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
 
       String allAssetSummaries = snapshot.docs.map((d) {
         final data = d.data();
-        return "ID: ${d.id} | Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
+        final fileName = data['fileName'] ?? 'Untitled';
+        final smartTitle = data['smartTitle'] ?? fileName;
+        return "ID: ${d.id} | Asset: $smartTitle | Summary: ${data['aiSummary']}";
       }).join('\n');
 
       final systemInstruction = "You are the Neural Canvas Semantic Search Router. Look at this index list of the user's personal knowledge documents: [INDEX: $allAssetSummaries]. The user is searching their digital brain for: '$query'. Identify and return ONLY a comma-separated list of the exact Firestore document IDs that match the semantic intent of this search. Return nothing else. No markdown, no intro.";
@@ -140,10 +142,10 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     );
   }
 
-  void _showDetailModal(BuildContext context, String currentDocId, String fileName, String fileType, String fileUrl, String aiSummary, List<QueryDocumentSnapshot> allDocs) {
+  void _showDetailModal(BuildContext context, String currentDocId, String smartTitle, String fileType, String fileUrl, String aiSummary, List<QueryDocumentSnapshot> allDocs) {
     final cs = Theme.of(context).colorScheme;
 
-    final combinedText = '$aiSummary $fileName'.toLowerCase();
+    final combinedText = '$aiSummary $smartTitle'.toLowerCase();
     final words = combinedText.split(RegExp(r'\W+'))
         .where((w) => w.length > 5)
         .toSet();
@@ -167,8 +169,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
 
       // Semantic Keyword Check
       final otherSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
-      final otherName = (data['fileName'] ?? '').toString().toLowerCase();
-      final otherText = '$otherSummary $otherName';
+      final otherSmartTitle = (data['smartTitle'] ?? data['fileName'] ?? '').toString().toLowerCase();
+      final otherText = '$otherSummary $otherSmartTitle';
       
       int matchCount = 0;
       for (final word in words) {
@@ -286,7 +288,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                               itemBuilder: (context, index) {
                                 final cDoc = connectedDocs[index];
                                 final cData = cDoc.data() as Map<String, dynamic>;
-                                final cName = cData['fileName'] ?? 'Untitled';
+                                final cName = cData['smartTitle'] ?? cData['fileName'] ?? 'Untitled';
                                 final cType = cData['fileType'] ?? 'unknown';
                                 final cUrl = cData['fileUrl'] ?? '';
                                 final cSummary = cData['aiSummary'] ?? '';
@@ -566,6 +568,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       final docId = filteredDocs[index].id;
                       final data = filteredDocs[index].data() as Map<String, dynamic>;
                       final fileName = data['fileName'] ?? 'Untitled';
+                      final smartTitle = data['smartTitle'] ?? fileName;
                       final fileType = data['fileType'] ?? 'unknown';
                       final fileUrl = data['fileUrl'] ?? '';
                       final aiSummary = data['aiSummary'] ?? 'Processing data...';
@@ -613,7 +616,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
                               onTap: () {
-                                 _showDetailModal(context, docId, fileName, fileType, fileUrl, aiSummary, allDocs);
+                                 _showDetailModal(context, docId, smartTitle, fileType, fileUrl, aiSummary, allDocs);
                               },
                               child: Padding(
                                 padding: const EdgeInsets.all(12),
@@ -626,7 +629,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            fileName,
+                                            smartTitle,
                                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,

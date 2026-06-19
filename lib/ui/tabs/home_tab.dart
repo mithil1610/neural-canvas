@@ -1058,6 +1058,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
   void showBlurUpsellOverlay(BuildContext context) {
     showDialog(
       context: context,

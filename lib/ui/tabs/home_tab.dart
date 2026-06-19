@@ -957,13 +957,20 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                   ),
                                   const SizedBox(width: 8),
                                   GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items),
-                                        ),
-                                      );
+                                    onTap: () async {
+                                      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                                      if (userDoc.data()?['accountTier'] != 'premium') {
+                                        if (context.mounted) showBlurUpsellOverlay(context);
+                                        return;
+                                      }
+                                      if (context.mounted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items),
+                                          ),
+                                        );
+                                      }
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1050,6 +1057,100 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  void showBlurUpsellOverlay(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.6),
+              ),
+            ),
+            Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.85,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.movie_creation_outlined, size: 48, color: Color(0xFFA78BFA)),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "CINEMATIC RENDERING UNLOCKED",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Color(0xFFA78BFA)),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Auto-Memory Reels utilize intensive cloud video composition engines. Upgrade to the Infinite Brain tier (\$49.99/mo) to unlock full-length cinematic video narrative production pipelines.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFA78BFA),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              // Simulate sandbox payment delay
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (_) => const Center(child: CircularProgressIndicator()),
+                              );
+                              await Future.delayed(const Duration(milliseconds: 1500));
+                              await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                                'accountTier': 'premium',
+                              }, SetOptions(merge: true));
+                              if (context.mounted) {
+                                Navigator.of(context).pop(); // pop loading
+                                Navigator.of(context).pop(); // pop overlay
+                                UIUtils.showFloatingSnackBar(context, 'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.');
+                              }
+                            }
+                          },
+                          child: const Text("Upgrade to Infinite Brain", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text("Dismiss", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

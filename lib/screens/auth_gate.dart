@@ -64,12 +64,30 @@ class _AuthGateState extends State<AuthGate> {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        "Terms of Service\n\nWelcome to Neural Canvas. By using this service, you agree to these terms.\n\nPrivacy Policy\n\nYour privacy is important to us. Your data, including uploaded assets, is securely processed via cloud AI models to provide you with insights and organizational intelligence. We do not sell your personal data. All data is scoped to your account and managed according to Global_v1 regulatory compliance standards.\n\n(This is a template privacy terms document).",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.6,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        ),
+                        child: Text(
+                          "NEURAL CANVAS • PRIVACY POLICY & DATA GOVERNANCE\n\n"
+                          "1. Scope of Service & Explicit AI Consent\n"
+                          "By creating an account, you grant Neural Canvas explicit permission to securely process your uploaded content (including images, text entries, and voice records) through advanced Large Language Models.\n\n"
+                          "2. Third-Party AI Data Transmission Disclosure (Apple Guideline 5.1.2(i))\n"
+                          "To deliver automated title indexing, multi-format summaries, RAG chat insights, and timeline extractions, Neural Canvas securely transmits your user-generated inputs to Google LLC API Infrastructure (utilizing the Google Gemini model engine). Your uploaded data is processed strictly for rendering contextual insights within your private dashboard. Your personal inputs, file uploads, and core analytical logs are never sold to data brokers, never utilized for targeted advertising, and are never used by Google to train public baseline AI models.\n\n"
+                          "3. Local Biometrics Architecture Policy\n"
+                          "Optional security access controls—including Apple Face ID or Android Touch ID—are executed 100% locally on your physical device via the hardware's Secure Enclave layer. Neural Canvas never captures, transmits, views, or stores your biometric profiles or raw hardware keys on its cloud servers.\n\n"
+                          "4. Data Encryption & Sovereignty\n"
+                          "All personal records, structural graphs, and media items are stored securely using Google Firebase Cloud Systems. Data is heavily guarded using TLS 1.2+ encryption protocols during internet transit and industry-standard AES-256 encryption metrics at rest.\n\n"
+                          "5. Global Rights & Immediate Data Erasure\n"
+                          "In compliance with CCPA, GDPR, and PIPEDA frameworks, you maintain absolute ownership over your Second Brain. You retain the right to access your content repository at any time. Furthermore, you may exercise your 'Right to be Forgotten' instantly by navigating to your Profile Settings and selecting 'Delete Account & Purge Vault'. This action executes an automated script that permanently vaporizes your entire authentication node, text indexes, metadata records, and cloud storage files from Google’s servers with zero retention windows.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            height: 1.6,
+                          ),
                         ),
                       ),
                     ),

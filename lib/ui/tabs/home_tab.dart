@@ -19,6 +19,7 @@ import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../screens/subscription_paywall_screen.dart';
 import '../screens/reel_storyboard_screen.dart';
+import '../screens/chronos_matrix_screen.dart';
 
 class QuickAction {
   final IconData icon;
@@ -824,7 +825,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       .collection('users')
                       .doc(user.uid)
                       .collection('upcoming_events')
-                      .orderBy('createdAt', descending: true)
+                      .where('eventDateTime', isGreaterThanOrEqualTo: DateTime.now().toIso8601String())
+                      .orderBy('eventDateTime', descending: false)
                       .limit(3)
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -834,54 +836,80 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Upcoming Timeline Coordinates",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ChronosMatrixScreen()),
+                          );
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Upcoming Timeline Coordinates",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 48,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
+                            const SizedBox(height: 12),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
                               itemCount: snapshot.data!.docs.length,
-                              separatorBuilder: (context, index) => const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                                 final title = data['eventTitle'] ?? 'Event';
                                 final time = data['eventDateTime'] ?? 'TBD';
-                                final location = data['eventLocation'] ?? 'TBD';
 
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                                  alignment: Alignment.center,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                                    color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF10B981)),
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0EA5E9),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.5),
+                                              blurRadius: 8,
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF0EA5E9)),
                                       const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                       Text(
-                                        "$title • $time • $location",
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        time,
+                                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                                       ),
                                     ],
                                   ),
                                 );
                               },
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },

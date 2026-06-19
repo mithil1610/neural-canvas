@@ -130,7 +130,7 @@ ${summaries.join('\n\n---\n\n')}
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "Reel Storyboard // \${widget.dateKey}",
+                        "Reel Storyboard // ${widget.dateKey}",
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,

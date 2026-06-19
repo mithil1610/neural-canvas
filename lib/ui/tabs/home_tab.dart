@@ -941,141 +941,226 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     );
                   }
 
-                  // Cluster logic
-                  Map<String, List<QueryDocumentSnapshot>> clusters = {};
+                  // Smart Grouping Buckets
+                  Map<String, List<QueryDocumentSnapshot>> groupAClusters = {};
+                  List<QueryDocumentSnapshot> groupB = [];
+                  List<QueryDocumentSnapshot> groupC = [];
+
                   for (var doc in allDocs) {
                     final data = doc.data() as Map<String, dynamic>;
+                    final aiSummary = data['aiSummary']?.toString() ?? '';
                     final ts = data['uploadedAt'] as Timestamp?;
-                    if (ts == null) continue;
-                    final d = ts.toDate();
-                    final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-                    if (!clusters.containsKey(key)) clusters[key] = [];
-                    clusters[key]!.add(doc);
+                    
+                    if (aiSummary == 'Analysis encountered an error.') {
+                      groupC.add(doc);
+                    } else if (ts == null) {
+                      groupB.add(doc);
+                    } else {
+                      final d = ts.toDate();
+                      final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+                      if (!groupAClusters.containsKey(key)) groupAClusters[key] = [];
+                      groupAClusters[key]!.add(doc);
+                    }
                   }
 
-                  final clusterKeys = clusters.keys.toList()..sort((a, b) => b.compareTo(a));
+                  final clusterKeys = groupAClusters.keys.toList()..sort((a, b) => b.compareTo(a));
 
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final dateKey = clusterKeys[index];
-                        final items = clusters[dateKey]!;
-                        final firstData = items.first.data() as Map<String, dynamic>;
-                        
-                        final dynamicTitle = _generateReelTitle(
-                          (firstData['aiSummary'] ?? '').toString(),
-                          (firstData['fileType'] ?? '').toString(),
-                        );
+                  Widget buildAssetGrid(List<QueryDocumentSnapshot> items) {
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: items.length,
+                      itemBuilder: (context, i) {
+                        final doc = items[i];
+                        final data = doc.data() as Map<String, dynamic>;
+                        final fileType = data['fileType'] ?? 'unknown';
+                        final fileUrl = data['fileUrl'] ?? '';
+                        final fileName = data['fileName'] ?? 'Asset';
+                        final aiSummary = data['aiSummary'] ?? '';
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _showDetailModal(context, fileName, fileType, fileUrl, aiSummary),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      dynamicTitle,
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () async {
-                                      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                                      if (userDoc.data()?['accountTier'] != 'premium') {
-                                        if (context.mounted) showBlurUpsellOverlay(context);
-                                        return;
-                                      }
-                                      if (context.mounted) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.5)),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.play_circle_outline, size: 16, color: Color(0xFFA78BFA)),
-                                          SizedBox(width: 4),
-                                          Text("Play Storyboard", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFA78BFA))),
-                                        ],
-                                      ),
-                                    ),
+                                  _buildFileIcon(fileType, fileUrl, size: 48),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    fileName,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
                             ),
-                            SizedBox(
-                              height: 140,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: items.length,
-                                itemBuilder: (context, i) {
-                                  final doc = items[i];
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  final fileType = data['fileType'] ?? 'unknown';
-                                  final fileUrl = data['fileUrl'] ?? '';
-                                  final fileName = data['fileName'] ?? 'Asset';
-                                  final aiSummary = data['aiSummary'] ?? '';
-
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(16),
-                                        onTap: () {
-                                          _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
-                                        },
-                                        child: Container(
-                                          width: 140,
-                                          decoration: BoxDecoration(
-                                            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-                                            borderRadius: BorderRadius.circular(16),
-                                            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
-                                          ),
-                                          padding: const EdgeInsets.all(8),
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              _buildFileIcon(fileType, fileUrl, size: 80),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                fileName,
-                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                          ),
                         );
                       },
-                      childCount: clusterKeys.length,
+                    );
+                  }
+
+                  return SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Group A
+                        ...clusterKeys.map((dateKey) {
+                          final items = groupAClusters[dateKey]!;
+                          final firstData = items.first.data() as Map<String, dynamic>;
+                          final dynamicTitle = _generateReelTitle(
+                            (firstData['aiSummary'] ?? '').toString(),
+                            (firstData['fileType'] ?? '').toString(),
+                          );
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      dynamicTitle,
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        // Cinematic Reel Button
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                                            if (userDoc.data()?['accountTier'] != 'premium') {
+                                              if (context.mounted) showBlurUpsellOverlay(context);
+                                              return;
+                                            }
+                                            if (context.mounted) {
+                                              Navigator.push(context, MaterialPageRoute(builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items)));
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.5)),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.movie_creation_outlined, size: 16, color: Color(0xFFA78BFA)),
+                                                SizedBox(width: 6),
+                                                Text("Generate Cinematic Reel", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFA78BFA))),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        // Visual Lookbook Button
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                                            if (userDoc.data()?['accountTier'] != 'premium') {
+                                              if (context.mounted) showBlurUpsellOverlay(context);
+                                              return;
+                                            }
+                                            final filtered = items.where((doc) {
+                                              final data = doc.data() as Map<String, dynamic>;
+                                              final type = data['fileType']?.toString() ?? '';
+                                              if (!type.startsWith('image')) return false;
+                                              final summary = data['aiSummary']?.toString().toLowerCase() ?? '';
+                                              return summary.length < 150 && !summary.contains("document") && !summary.contains("text") && !summary.contains("transcript");
+                                            }).toList();
+
+                                            if (filtered.isEmpty && context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No suitable lifestyle/scenery images found for a Lookbook.")));
+                                              return;
+                                            }
+                                            if (context.mounted) {
+                                              Navigator.push(context, MaterialPageRoute(builder: (context) => ReelStoryboardScreen(dateKey: "$dateKey Lookbook", clusterItems: filtered)));
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.auto_awesome_mosaic_outlined, size: 16, color: Color(0xFF10B981)),
+                                                SizedBox(width: 6),
+                                                Text("Launch Visual Lookbook", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              buildAssetGrid(items),
+                            ],
+                          );
+                        }),
+
+                        // Group B
+                        if (groupB.isNotEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
+                            child: Text(
+                              "Non-Dated Snapshots",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                            ),
+                          ),
+                          buildAssetGrid(groupB),
+                        ],
+
+                        // Group C
+                        if (groupC.isNotEmpty) ...[
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: ExpansionTile(
+                              collapsedBackgroundColor: cs.errorContainer.withValues(alpha: 0.1),
+                              backgroundColor: cs.errorContainer.withValues(alpha: 0.05),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              leading: Icon(Icons.warning_amber_rounded, color: cs.error),
+                              title: Text("Unprocessed Vault (${groupC.length} assets)", style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                              children: [
+                                const SizedBox(height: 16),
+                                buildAssetGrid(groupC),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   );
                 },

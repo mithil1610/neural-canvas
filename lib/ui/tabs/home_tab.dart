@@ -814,8 +814,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             const SizedBox(width: 8),
                             Lottie.network(
                               DateTime.now().hour < 17
-                                  ? 'https://assets9.lottiefiles.com/packages/lf20_stq51uud.json' // Day/Sun
-                                  : 'https://assets3.lottiefiles.com/packages/lf20_KqXhQY.json', // Moon/Night
+                                  ? 'https://assets5.lottiefiles.com/packages/lf20_xlbhme96.json' // Day/Sun
+                                  : 'https://assets10.lottiefiles.com/packages/lf20_isb7clby.json', // Moon/Night
                               width: 32,
                               height: 32,
                               animate: true,

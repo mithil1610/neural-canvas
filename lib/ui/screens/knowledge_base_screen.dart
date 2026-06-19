@@ -146,40 +146,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   void _showDetailModal(BuildContext context, String currentDocId, String smartTitle, String fileType, String fileUrl, String aiSummary, List<QueryDocumentSnapshot> allDocs) {
     final cs = Theme.of(context).colorScheme;
 
-    final combinedText = '$aiSummary $smartTitle'.toLowerCase();
-    final words = combinedText.split(RegExp(r'\W+'))
-        .where((w) => w.length > 5)
-        .toSet();
 
-    final connectedDocs = allDocs.where((doc) {
-      if (doc.id == currentDocId) return false;
-      final data = doc.data() as Map<String, dynamic>;
-      
-      // Chronological Proximity Check (48 hours)
-      bool isChronologicallyClose = false;
-      final currentData = allDocs.firstWhere((d) => d.id == currentDocId).data() as Map<String, dynamic>;
-      final currentTimestamp = currentData['uploadedAt'] as Timestamp?;
-      final otherTimestamp = data['uploadedAt'] as Timestamp?;
-      
-      if (currentTimestamp != null && otherTimestamp != null) {
-        final diff = currentTimestamp.toDate().difference(otherTimestamp.toDate()).abs();
-        if (diff.inHours <= 48) {
-          isChronologicallyClose = true;
-        }
-      }
-
-      // Semantic Keyword Check
-      final otherSummary = (data['aiSummary'] ?? '').toString().toLowerCase();
-      final otherSmartTitle = (data['smartTitle'] ?? data['fileName'] ?? '').toString().toLowerCase();
-      final otherText = '$otherSummary $otherSmartTitle';
-      
-      int matchCount = 0;
-      for (final word in words) {
-        if (otherText.contains(word)) matchCount++;
-      }
-      
-      return isChronologicallyClose || matchCount >= 2;
-    }).take(10).toList();
 
     showModalBottomSheet(
       context: context,
@@ -273,72 +240,103 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       ),
                     ),
                   ),
-                  if (connectedDocs.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Divider(height: 40, color: Colors.white24),
-                          const Text("CONNECTED MEMORY GRAPH", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white60)),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 100,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: connectedDocs.length,
-                              itemBuilder: (context, index) {
-                                final cDoc = connectedDocs[index];
-                                final cData = cDoc.data() as Map<String, dynamic>;
-                                final cName = cData['smartTitle'] ?? cData['fileName'] ?? 'Untitled';
-                                final cType = cData['fileType'] ?? 'unknown';
-                                final cUrl = cData['fileUrl'] ?? '';
-                                final cSummary = cData['aiSummary'] ?? '';
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      Navigator.pop(context);
-                                      _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
-                                    },
-                                    child: Container(
-                                      width: 90,
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          _buildFileIcon(cType, cUrl, size: 40),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            cName,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: cs.onSurfaceVariant,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Divider(height: 40, color: Colors.white24),
+                        const Text("CONNECTED MEMORY GRAPH", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white60)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 100,
+                          child: StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(FirebaseAuth.instance.currentUser!.uid)
+                                .collection('knowledge_base')
+                                .where(FieldPath.documentId, isNotEqualTo: currentDocId)
+                                .limit(6)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator(color: Colors.white24));
+                              }
+                              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      "Isolating node... Upload more assets to discover automated contextual connections.",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white54, fontSize: 12, fontStyle: FontStyle.italic),
                                     ),
                                   ),
                                 );
-                              },
-                            ),
+                              }
+
+                              final docs = snapshot.data!.docs;
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: docs.length,
+                                itemBuilder: (context, index) {
+                                  final cDoc = docs[index];
+                                  final cData = cDoc.data() as Map<String, dynamic>;
+                                  final cName = cData['smartTitle'] ?? cData['fileName'] ?? 'Untitled';
+                                  final cType = cData['fileType'] ?? 'unknown';
+                                  final cUrl = cData['fileUrl'] ?? '';
+                                  final cSummary = cData['aiSummary'] ?? '';
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        Navigator.pop(context);
+                                        _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
+                                      },
+                                      child: Container(
+                                        width: 90,
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            _buildFileIcon(cType, cUrl, size: 40),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              cName,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: cs.onSurfaceVariant,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),

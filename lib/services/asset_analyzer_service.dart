@@ -27,8 +27,6 @@ class AssetAnalyzerService {
     );
 
     try {
-      String aiSummary = "Processing semantic data...";
-      
       String mimeType = 'image/jpeg';
       String systemPrompt = 'Analyze this asset comprehensively.';
 

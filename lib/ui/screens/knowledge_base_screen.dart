@@ -224,7 +224,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                fileName,
+                                smartTitle,
                                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,

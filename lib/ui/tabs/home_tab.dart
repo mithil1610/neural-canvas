@@ -100,7 +100,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+              boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
             ),
             child: SafeArea(
               child: Column(
@@ -125,6 +126,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   ),
                   FilledButton(
                     onPressed: () async {
+                      HapticFeedback.lightImpact();
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
                         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
@@ -263,7 +265,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: cs.surface.withValues(alpha: 0.9),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+              boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
             ),
             child: SafeArea(
               child: Column(
@@ -494,6 +497,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () async {
+                      HapticFeedback.lightImpact();
                       Navigator.pop(dialogContext); // Close dialog
                       final path = await _audioRecorder.stop();
                       setState(() { _isRecording = false; _isImporting = true; });
@@ -588,6 +592,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: () async {
+                    HapticFeedback.lightImpact();
                     final rawText = textController.text.trim();
                     if (rawText.isEmpty) return;
                     
@@ -686,6 +691,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () {
+              HapticFeedback.lightImpact();
               if (action.label == 'Import') _handleImport();
               if (action.label == 'Scan') _handleScan();
               if (action.label == 'Voice Note') _handleVoiceNote();
@@ -742,6 +748,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               actions: [
                 GestureDetector(
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))
                         .then((_) { if (mounted) setState(() {}); });
                   },
@@ -768,7 +775,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       Positioned(right: 0, top: 0, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle))),
                     ],
                   ),
-                  onPressed: () {},
+                  onPressed: () { HapticFeedback.lightImpact(); },
                 ),
                 const SizedBox(width: 8),
               ],
@@ -861,6 +868,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                       child: GestureDetector(
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const ChronosMatrixScreen()),
@@ -1013,7 +1021,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
-                            onTap: () => _showDetailModal(context, fileName, fileType, fileUrl, aiSummary),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
+                            },
                             child: Container(
                               decoration: BoxDecoration(
                                 color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -1104,6 +1115,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                         // Visual Lookbook Button
                                         GestureDetector(
                                           onTap: () async {
+                                            HapticFeedback.lightImpact();
                                             final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
                                             if (userDoc.data()?['accountTier'] != 'premium') {
                                               if (context.mounted) showBlurUpsellOverlay(context);
@@ -1279,7 +1291,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () { HapticFeedback.lightImpact(); Navigator.of(context).pop(); },
                         child: Text("Dismiss", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ),
                     ],
@@ -1393,7 +1405,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                     Text('Creation Engine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.primary)),
                     IconButton(
                       icon: Icon(Icons.close, color: cs.onSurfaceVariant),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
                     ),
                   ],
                 ),
@@ -1425,7 +1437,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                     ),
                     icon: const Icon(Icons.auto_awesome),
                     label: const Text('Synthesize Matrix', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    onPressed: _synthesizeMatrix,
+                    onPressed: () { HapticFeedback.lightImpact(); _synthesizeMatrix(); },
                   ),
                 ),
               ] else if (_isGenerating && _generatedContent.isEmpty) ...[

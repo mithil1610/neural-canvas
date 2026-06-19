@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:neural_canvas/screens/auth_gate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import '../../utils/ui_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _updateProfilePicture() async {
     if (_user == null) return;
+    HapticFeedback.lightImpact();
 
     try {
       final ImagePicker picker = ImagePicker();
@@ -101,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_user == null) return;
+    HapticFeedback.lightImpact();
 
     setState(() {
       _isSaving = true;
@@ -149,6 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteAccount() async {
+    HapticFeedback.heavyImpact();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -321,6 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   TextButton.icon(
                     onPressed: () async {
+                      HapticFeedback.lightImpact();
                       await FirebaseAuth.instance.signOut();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(

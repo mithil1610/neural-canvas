@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import '../../utils/ui_utils.dart';
 
 class SubscriptionPaywallScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
   bool _isPurchasing = false;
 
   Future<void> _simulatePurchase(String targetTier) async {
+    HapticFeedback.lightImpact();
     setState(() {
       _isPurchasing = true;
     });
@@ -170,7 +172,8 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0F).withValues(alpha: 0.85),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+          boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
         ),
         child: Stack(
           children: [
@@ -275,19 +278,33 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                         const SizedBox(height: 32),
                         
                         // Action Button
-                        ElevatedButton(
-                          onPressed: _isPurchasing ? null : () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: cs.primary,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 8,
-                            shadowColor: cs.primary.withValues(alpha: 0.5),
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF334155), Color(0xFF1E3A8A)]),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(color: cs.primary.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 0, offset: const Offset(0, 4)),
+                            ],
                           ),
-                          child: const Text(
-                            'Activate Matrix Link',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: _isPurchasing ? null : () {
+                                HapticFeedback.lightImpact();
+                                Navigator.pop(context);
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: Text(
+                                    'Activate Matrix Link',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         
@@ -330,7 +347,8 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                         decoration: BoxDecoration(
                           color: cs.surfaceContainerHighest.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+                          boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -126,7 +127,7 @@ ${summaries.join('\n\n---\n\n')}
                     children: [
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
                       ),
                       const SizedBox(width: 8),
                       Text(

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter/services.dart';
 import '../../utils/ui_utils.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
@@ -192,7 +193,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
             decoration: BoxDecoration(
               color: cs.surface.withValues(alpha: 0.9),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+              boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
             ),
             child: SafeArea(
               child: Column(
@@ -297,6 +299,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                                   padding: const EdgeInsets.only(right: 12),
                                   child: GestureDetector(
                                     onTap: () {
+                                      HapticFeedback.lightImpact();
                                       Navigator.pop(context);
                                       _showDetailModal(context, cDoc.id, cName, cType, cUrl, cSummary, allDocs);
                                     },
@@ -441,6 +444,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                         ? IconButton(
                             icon: Icon(Icons.close, size: 20, color: cs.onSurfaceVariant),
                             onPressed: () {
+                              HapticFeedback.lightImpact();
                               _searchController.clear();
                               setState(() {
                                 _isSemanticSearchActive = false;
@@ -616,6 +620,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
                               onTap: () {
+                                 HapticFeedback.lightImpact();
                                  _showDetailModal(context, docId, smartTitle, fileType, fileUrl, aiSummary, allDocs);
                               },
                               child: Padding(

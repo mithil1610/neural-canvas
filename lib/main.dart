@@ -11,7 +11,10 @@ import 'package:neural_canvas/screens/chat_history_screen.dart';
 import 'package:neural_canvas/services/share_receiver_service.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
+import 'package:neural_canvas/services/notification_service.dart';
+import 'package:neural_canvas/ui/screens/chronos_matrix_screen.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'dart:ui';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -27,6 +30,9 @@ Future<void> main() async {
   } catch (e) {
     debugPrint("Firebase init failed: $e");
   }
+
+  tz.initializeTimeZones();
+  await NotificationService().initialize();
 
   runApp(const NeuralCanvasApp());
 }
@@ -62,6 +68,9 @@ class NeuralCanvasApp extends StatelessWidget {
         fontFamily:
             'Inter', // Assuming standard system font if Inter isn't loaded
       ),
+      routes: {
+        '/chronosMatrix': (context) => const ChronosMatrixScreen(),
+      },
       home: const AuthGate(),
     );
   }

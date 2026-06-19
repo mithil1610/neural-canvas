@@ -4,6 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'package:neural_canvas/services/notification_service.dart';
 
 class AssetAnalyzerService {
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
@@ -134,6 +135,7 @@ class AssetAnalyzerService {
       final prompt = """
 Analyze the following text for any identifiable timeline variables or scheduled events (e.g., meeting dates, locations, calendar slots, appointment confirmations).
 If events are found, return a JSON array of objects, where each object has these strictly named string keys: "eventTitle", "eventDateTime", "eventLocation".
+For "eventDateTime", strictly format it as a valid ISO8601 string (e.g., "2026-10-12T14:00:00Z").
 If no events are found, return an empty JSON array [].
 
 Text: $summaryText
@@ -147,13 +149,33 @@ Text: $summaryText
           
           for (var event in events) {
             final newDoc = eventsRef.doc();
+            final title = event['eventTitle']?.toString() ?? 'Unknown Event';
+            final dateTimeStr = event['eventDateTime']?.toString() ?? 'TBD';
+            final location = event['eventLocation']?.toString() ?? 'TBD';
+
             batch.set(newDoc, {
               'sourceDocId': docId,
-              'eventTitle': event['eventTitle']?.toString() ?? 'Unknown Event',
-              'eventDateTime': event['eventDateTime']?.toString() ?? 'TBD',
-              'eventLocation': event['eventLocation']?.toString() ?? 'TBD',
+              'eventTitle': title,
+              'eventDateTime': dateTimeStr,
+              'eventLocation': location,
               'createdAt': FieldValue.serverTimestamp(),
             });
+
+            if (dateTimeStr != 'TBD') {
+              try {
+                final dt = DateTime.parse(dateTimeStr);
+                final triggerTime = dt.subtract(const Duration(minutes: 30));
+                if (triggerTime.isAfter(DateTime.now())) {
+                  NotificationService.scheduleEventNotification(
+                    title: "Upcoming Event • $title",
+                    body: "$location - Tap to view your Chronos Matrix.",
+                    scheduledDate: triggerTime,
+                  );
+                }
+              } catch (e) {
+                debugPrint("Failed to parse event time for notification: $e");
+              }
+            }
           }
           await batch.commit();
           debugPrint("AssetAnalyzer: Successfully extracted \${events.length} events for $docId");

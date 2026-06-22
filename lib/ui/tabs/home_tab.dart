@@ -76,6 +76,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   late final Animation<double> _fadeAnimation;
   String? activeLoadingAction;
   final _audioRecorder = AudioRecorder();
+  bool hasUnreadNotifications = true;
 
   @override
   void initState() {

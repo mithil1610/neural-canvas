@@ -152,7 +152,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Updated Legal Policies',
+                    'Neural Matrix Alignment',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -161,7 +161,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   Expanded(
                     child: SingleChildScrollView(
                       child: Text(
-                        "We've updated our Terms of Service and Privacy Policy.\n\nBy continuing to use Neural Canvas, you agree to our Terms and consent to your uploaded assets being securely processed via cloud AI models.",
+                        "We have updated our Terms of Service and Privacy Policy to guarantee absolute transparency. By continuing into your Second Brain, you authorize secure data indexing executed strictly via our dedicated Google Gemini API infrastructure. Your uploaded assets are fully encrypted, protected from public model training cycles, and remain completely sovereign to you.",
                         style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -197,7 +197,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('I Agree'),
+                    child: const Text('Synchronize Matrix'),
                   ),
                 ],
               ),

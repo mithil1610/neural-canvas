@@ -29,23 +29,34 @@ class AssetAnalyzerService {
 
     try {
       String mimeType = 'image/jpeg';
-      String systemPrompt = 'Analyze this asset comprehensively.';
+      String systemPrompt = '''You are an expert data extraction engine for a personal Second Brain app.
+Analyze the provided asset. If the input is a standard document or scene, provide a concise smartTitle and a detailed summary as instructed.
+
+CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat message thread, direct message log, or a tall rolling screenshot from applications like WhatsApp, iMessage, Telegram, Slack, or Discord:
+1. Bypass standard paragraph summaries.
+2. Transcribe the entire conversation thread chronologically from top to bottom.
+3. Format the 'summary' output field strictly as a clean, highly readable dialogue script using markdown bolding for names:
+   **[Sender/Left Side]**: Message text here
+   **[Receiver/Right Side]**: Response text here
+4. Generate a 'smartTitle' that summarizes the core relationship or outcome of that specific discussion thread (e.g., 'Project Sync with Sarah', 'Weekend Travel Alignment').
+
+''';
 
       if (fileType == 'pdf') {
         mimeType = 'application/pdf';
-        systemPrompt = 'Extract all textual data via deep OCR. Identify core concepts, critical names, data points, entities, and provide an exhaustive analytical summary.';
+        systemPrompt += 'Extract all textual data via deep OCR. Identify core concepts, critical names, data points, entities, and provide an exhaustive analytical summary.';
       } else if (['mp3', 'm4a', 'wav'].contains(fileType)) {
         mimeType = 'audio/mp3';
-        systemPrompt = 'Listen to this audio track carefully. Transcribe the spoken text entirely, analyze the conversational tone, summarize the core topics discussed, and output key takeaways.';
+        systemPrompt += 'Listen to this audio track carefully. Transcribe the spoken text entirely, analyze the conversational tone, summarize the core topics discussed, and output key takeaways.';
       } else if (['mp4', 'mov'].contains(fileType)) {
         mimeType = 'video/mp4';
-        systemPrompt = 'Watch this video clip sequentially. Detect key scenes, summarize visual actions, transcribe background audio tracks, and create a timeline summary of what occurs.';
+        systemPrompt += 'Watch this video clip sequentially. Detect key scenes, summarize visual actions, transcribe background audio tracks, and create a timeline summary of what occurs.';
       } else {
         mimeType = 'image/jpeg';
-        systemPrompt = 'Perform an image analysis. Read any overlay text via OCR, detect visible objects, actions, human expressions, emotional mood, and summarize the overall context.';
+        systemPrompt += 'Perform an image analysis. Read any overlay text via OCR, detect visible objects, actions, human expressions, emotional mood, and summarize the overall context.';
       }
 
-      systemPrompt += ' Additionally, generate a highly contextual, punchy title (maximum 5 words) that perfectly describes this asset. Format your response strictly as JSON: { "title": "...", "summary": "..." }';
+      systemPrompt += ' Format your response strictly as JSON: { "title": "...", "summary": "..." }';
 
       final response = await http.get(Uri.parse(fileUrl));
       final bytes = response.bodyBytes;

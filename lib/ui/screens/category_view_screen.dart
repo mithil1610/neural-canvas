@@ -95,8 +95,7 @@ class _CategoryViewScreenState extends State<CategoryViewScreen> {
                   .collection('knowledge_base')
                   .where(
                     'category',
-                    '==',
-                    widget.selectedCategory.toLowerCase(),
+                    isEqualTo: widget.selectedCategory.toLowerCase(),
                   )
                   .snapshots(),
               builder: (context, snapshot) {

@@ -16,11 +16,11 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Neural Canvas requires access to the camera to process and capture images.</string>
+	<string>Neural Canvas requires camera access to capture immediate document scans and physical visual context notes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Neural Canvas requires access to the photo library to process shared media.</string>
+	<string>Neural Canvas requires access to your photo library to import rolling conversation screenshots and media assets.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Neural Canvas requires access to the microphone for video features.</string>
+	<string>Neural Canvas requires microphone access to record and transcribe fluid audio ambient voice thoughts into your knowledge matrix.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -66,6 +66,6 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Neural Canvas requires secure biometric access to unlock your encrypted personal knowledge matrix vaults.</string>
+	<string>Neural Canvas requires secure local biometric authentication to protect access to your private memory vaults.</string>
 </dict>
 </plist>

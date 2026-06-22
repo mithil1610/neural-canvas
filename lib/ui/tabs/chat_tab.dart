@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -389,9 +390,12 @@ class _ChatTabState extends State<ChatTab> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            tooltip: 'Clear Chat',
-            onPressed: () => _aiService.clearHistory(),
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Start New Thread',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _aiService.clearHistory();
+            },
           ),
         ],
       ),

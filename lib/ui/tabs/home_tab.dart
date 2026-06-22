@@ -6,6 +6,7 @@ import 'package:neural_canvas/ui/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
@@ -28,15 +29,39 @@ class QuickAction {
   final String label;
   final Color color;
 
-  const QuickAction({required this.icon, required this.label, required this.color});
+  const QuickAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 }
 
 const List<QuickAction> _quickActions = [
-  QuickAction(icon: Icons.camera_alt_outlined, label: 'Scan', color: Color(0xFF818CF8)),
-  QuickAction(icon: Icons.mic_none, label: 'Voice Note', color: Color(0xFFA78BFA)),
-  QuickAction(icon: Icons.upload_file_outlined, label: 'Import', color: Color(0xFF0EA5E9)),
-  QuickAction(icon: Icons.auto_awesome, label: 'Generate', color: Color(0xFFF59E0B)),
-  QuickAction(icon: Icons.paste_outlined, label: 'Paste Text', color: Color(0xFF10B981)),
+  QuickAction(
+    icon: Icons.camera_alt_outlined,
+    label: 'Scan',
+    color: Color(0xFF818CF8),
+  ),
+  QuickAction(
+    icon: Icons.mic_none,
+    label: 'Voice Note',
+    color: Color(0xFFA78BFA),
+  ),
+  QuickAction(
+    icon: Icons.upload_file_outlined,
+    label: 'Import',
+    color: Color(0xFF0EA5E9),
+  ),
+  QuickAction(
+    icon: Icons.auto_awesome,
+    label: 'Generate',
+    color: Color(0xFFF59E0B),
+  ),
+  QuickAction(
+    icon: Icons.paste_outlined,
+    label: 'Paste Text',
+    color: Color(0xFF10B981),
+  ),
 ];
 
 class HomeTab extends StatefulWidget {
@@ -59,7 +84,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
     _fadeController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCompliance();
@@ -69,9 +97,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _checkCompliance() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       if (doc.exists) {
         final data = doc.data();
         if (data != null && !data.containsKey('legalCompliance')) {
@@ -98,10 +129,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             height: MediaQuery.of(context).size.height * 0.5,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
-              boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.9),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
             child: SafeArea(
               child: Column(
@@ -109,7 +153,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 children: [
                   Text(
                     'Updated Legal Policies',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -129,13 +175,17 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       HapticFeedback.lightImpact();
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
-                        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-                          'legalCompliance': {
-                            'agreedToTermsAndPrivacy': true,
-                            'consentTimestamp': FieldValue.serverTimestamp(),
-                            'regulatoryScope': 'Global_v1'
-                          }
-                        }, SetOptions(merge: true));
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .set({
+                              'legalCompliance': {
+                                'agreedToTermsAndPrivacy': true,
+                                'consentTimestamp':
+                                    FieldValue.serverTimestamp(),
+                                'regulatoryScope': 'Global_v1',
+                              },
+                            }, SetOptions(merge: true));
                       }
                       if (context.mounted) {
                         Navigator.of(context).pop();
@@ -143,7 +193,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text('I Agree'),
                   ),
@@ -184,17 +236,35 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   // Generate dynamic title from AI summary
   String _generateReelTitle(String aiSummary, String fallbackType) {
     final summaryLower = aiSummary.toLowerCase();
-    if (summaryLower.contains("receipt") || summaryLower.contains("invoice") || summaryLower.contains("financial")) return "Financial Records";
-    if (summaryLower.contains("route") || summaryLower.contains("run") || summaryLower.contains("workout")) return "Fitness Highlights";
-    if (summaryLower.contains("vacation") || summaryLower.contains("trip") || summaryLower.contains("travel")) return "Travel Memories";
-    if (summaryLower.contains("design") || summaryLower.contains("meeting") || summaryLower.contains("work")) return "Work Insights";
-    if (summaryLower.contains("recipe") || summaryLower.contains("cook") || summaryLower.contains("food")) return "Culinary Collection";
-    
+    if (summaryLower.contains("receipt") ||
+        summaryLower.contains("invoice") ||
+        summaryLower.contains("financial"))
+      return "Financial Records";
+    if (summaryLower.contains("route") ||
+        summaryLower.contains("run") ||
+        summaryLower.contains("workout"))
+      return "Fitness Highlights";
+    if (summaryLower.contains("vacation") ||
+        summaryLower.contains("trip") ||
+        summaryLower.contains("travel"))
+      return "Travel Memories";
+    if (summaryLower.contains("design") ||
+        summaryLower.contains("meeting") ||
+        summaryLower.contains("work"))
+      return "Work Insights";
+    if (summaryLower.contains("recipe") ||
+        summaryLower.contains("cook") ||
+        summaryLower.contains("food"))
+      return "Culinary Collection";
+
     // Extracted fileType fallback
-    if (fallbackType == 'pdf' || fallbackType == 'doc' || fallbackType == 'docx') return "Document Insights";
+    if (fallbackType == 'pdf' ||
+        fallbackType == 'doc' ||
+        fallbackType == 'docx')
+      return "Document Insights";
     if (fallbackType == 'mp4' || fallbackType == 'mov') return "Video Timeline";
     if (fallbackType == 'mp3' || fallbackType == 'wav') return "Audio Captures";
-    
+
     return "Visual Musings";
   }
 
@@ -211,7 +281,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             width: size,
             height: size,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           ),
           errorWidget: (context, url, error) => Container(
             width: size,
@@ -222,11 +298,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         ),
       );
     }
-    
+
     IconData iconData;
     Color iconColor;
 
-    if (fileType == 'pdf' || fileType == 'doc' || fileType == 'docx' || fileType == 'txt') {
+    if (fileType == 'pdf' ||
+        fileType == 'doc' ||
+        fileType == 'docx' ||
+        fileType == 'txt') {
       iconData = fileType == 'pdf' ? Icons.picture_as_pdf : Icons.description;
       iconColor = fileType == 'pdf' ? Colors.redAccent : Colors.blueAccent;
     } else if (fileType == 'mp3' || fileType == 'm4a' || fileType == 'wav') {
@@ -251,7 +330,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
-  void _showDetailModal(BuildContext context, String title, String fileType, String fileUrl, String aiSummary) {
+  void _showDetailModal(
+    BuildContext context,
+    String title,
+    String fileType,
+    String fileUrl,
+    String aiSummary,
+  ) {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
@@ -264,9 +349,20 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             height: MediaQuery.of(context).size.height * 0.85,
             decoration: BoxDecoration(
               color: cs.surface.withValues(alpha: 0.9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
-              boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.02), blurRadius: 10, spreadRadius: 0)],
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
             child: SafeArea(
               child: Column(
@@ -284,7 +380,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  
+
                   // Header / File Preview
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -299,7 +395,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             children: [
                               Text(
                                 title,
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -307,7 +406,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: cs.primaryContainer,
                                     borderRadius: BorderRadius.circular(8),
@@ -329,18 +431,37 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Divider(color: cs.outlineVariant.withValues(alpha: 0.2), height: 1),
-                  
+                  Divider(
+                    color: cs.outlineVariant.withValues(alpha: 0.2),
+                    height: 1,
+                  ),
+
                   // AI Summary Content
                   Expanded(
                     child: Markdown(
                       data: aiSummary,
                       padding: const EdgeInsets.all(24),
                       styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(fontSize: 16, color: cs.onSurface, height: 1.6),
-                        h1: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.primary),
-                        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface),
-                        h3: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface),
+                        p: TextStyle(
+                          fontSize: 16,
+                          color: cs.onSurface,
+                          height: 1.6,
+                        ),
+                        h1: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: cs.primary,
+                        ),
+                        h2: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                        h3: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
                         listBullet: TextStyle(color: cs.primary),
                       ),
                     ),
@@ -356,39 +477,136 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
   Future<void> _handleImport() async {
     if (activeLoadingAction != null) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext ctx) {
+        return Container(
+          padding: const EdgeInsets.only(
+            top: 24,
+            bottom: 40,
+            left: 16,
+            right: 16,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: Colors.white.withOpacity(0.08)),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Ingest New Knowledge",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.white70),
+                title: const Text(
+                  "📸 Photo & Screenshot Library",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _processImport(source: 'photo');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_copy, color: Colors.white70),
+                title: const Text(
+                  "📁 Browse Text Files & PDFs",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _processImport(source: 'file');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _processImport({required String source}) async {
     if (!await AuthService.checkAndIncrementUsage(context)) return;
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 75,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
-      if (image == null) return;
+      String? filePath;
+      String? fileName;
+
+      if (source == 'photo') {
+        final ImagePicker picker = ImagePicker();
+        final XFile? image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 75,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        );
+        if (image == null) return;
+        filePath = image.path;
+        fileName = image.name;
+      } else {
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'txt', 'docx'],
+        );
+        if (result == null || result.files.single.path == null) return;
+        filePath = result.files.single.path!;
+        fileName = result.files.single.name;
+      }
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      setState(() { activeLoadingAction = 'import'; });
+      bool isPremium = await UserService.isUserPremium(user.uid);
+      if (!isPremium) {
+        final length = File(filePath).lengthSync();
+        if (length > 5 * 1024 * 1024) {
+          if (mounted)
+            UIUtils.showFloatingSnackBar(
+              context,
+              'Free tier is limited to 5MB files. Please optimize or upgrade to Infinite Brain.',
+            );
+          return;
+        }
+      }
+
+      setState(() {
+        activeLoadingAction = 'import';
+      });
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = image.name;
-      final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
+      );
 
       UploadTask uploadTask;
       if (kIsWeb) {
-        final bytes = await image.readAsBytes();
+        final bytes = await File(filePath).readAsBytes();
         uploadTask = storageRef.putData(bytes);
       } else {
-        uploadTask = storageRef.putFile(File(image.path));
+        uploadTask = storageRef.putFile(File(filePath));
       }
 
       final snapshot = await uploadTask;
       final mediaUrl = await snapshot.ref.getDownloadURL();
-      final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : 'unknown';
+      final ext = fileName.contains('.')
+          ? fileName.split('.').last.toLowerCase()
+          : 'unknown';
 
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .doc();
       await docRef.set({
         'fileName': fileName,
         'fileUrl': mediaUrl,
@@ -405,7 +623,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
     } finally {
-      if (mounted) setState(() { activeLoadingAction = null; });
+      if (mounted)
+        setState(() {
+          activeLoadingAction = null;
+        });
     }
   }
 
@@ -424,11 +645,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      setState(() { activeLoadingAction = 'scan'; });
+      setState(() {
+        activeLoadingAction = 'scan';
+      });
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = image.name;
-      final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
+      );
 
       UploadTask uploadTask;
       if (kIsWeb) {
@@ -442,7 +667,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final mediaUrl = await snapshot.ref.getDownloadURL();
       final ext = 'jpg'; // force jpg for camera captures
 
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .doc();
       await docRef.set({
         'fileName': 'Camera Capture',
         'fileUrl': mediaUrl,
@@ -459,7 +688,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Scan failed: $e');
     } finally {
-      if (mounted) setState(() { activeLoadingAction = null; });
+      if (mounted)
+        setState(() {
+          activeLoadingAction = null;
+        });
     }
   }
 
@@ -470,52 +702,73 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
     try {
       if (await _audioRecorder.hasPermission()) {
-        final Directory appDocumentsDir = await getApplicationDocumentsDirectory();
-        final String filePath = '${appDocumentsDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        final Directory appDocumentsDir =
+            await getApplicationDocumentsDirectory();
+        final String filePath =
+            '${appDocumentsDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
         await _audioRecorder.start(
           const RecordConfig(encoder: AudioEncoder.aacLc), // m4a/aac container
           path: filePath,
         );
-        setState(() { activeLoadingAction = 'voice'; });
+        setState(() {
+          activeLoadingAction = 'voice';
+        });
 
         if (mounted) {
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) => AlertDialog(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.mic, size: 48, color: Colors.redAccent),
                   const SizedBox(height: 16),
-                  const Text('Recording Voice Note...', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Recording Voice Note...',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                     onPressed: () async {
                       HapticFeedback.lightImpact();
                       Navigator.pop(dialogContext); // Close dialog
                       final path = await _audioRecorder.stop();
-                      setState(() { activeLoadingAction = 'voice'; });
+                      setState(() {
+                        activeLoadingAction = 'voice';
+                      });
 
                       if (path != null) {
                         final file = File(path);
                         final timestamp = DateTime.now().millisecondsSinceEpoch;
                         final fileName = 'VoiceNote_$timestamp.m4a';
-                        final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}/knowledge_base/$fileName');
-                        
+                        final storageRef = FirebaseStorage.instance.ref().child(
+                          'users/${user.uid}/knowledge_base/$fileName',
+                        );
+
                         final uploadTask = storageRef.putFile(file);
                         final snapshot = await uploadTask;
                         final mediaUrl = await snapshot.ref.getDownloadURL();
-                        
-                        final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+
+                        final docRef = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .collection('knowledge_base')
+                            .doc();
                         await docRef.set({
                           'fileName': 'Voice Note',
                           'fileUrl': mediaUrl,
@@ -524,12 +777,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           'aiSummary': 'Transcribing audio...',
                         });
 
-                        AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, 'm4a');
+                        AssetAnalyzerService.analyzeIngestedAsset(
+                          docRef.id,
+                          mediaUrl,
+                          'm4a',
+                        );
 
                         if (!mounted) return;
-                        UIUtils.showFloatingSnackBar(context, 'Voice note ingested!');
+                        UIUtils.showFloatingSnackBar(
+                          context,
+                          'Voice note ingested!',
+                        );
                       }
-                      if (mounted) setState(() { activeLoadingAction = null; });
+                      if (mounted)
+                        setState(() {
+                          activeLoadingAction = null;
+                        });
                     },
                     child: const Text('Stop & Save'),
                   ),
@@ -539,11 +802,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
         }
       } else {
-        if (mounted) UIUtils.showFloatingSnackBar(context, 'Microphone permission denied.');
+        if (mounted)
+          UIUtils.showFloatingSnackBar(
+            context,
+            'Microphone permission denied.',
+          );
       }
     } catch (e) {
-      if (mounted) setState(() { activeLoadingAction = null; });
-      if (mounted) UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
+      if (mounted)
+        setState(() {
+          activeLoadingAction = null;
+        });
+      if (mounted)
+        UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
     }
   }
 
@@ -558,7 +829,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
@@ -570,9 +843,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 24),
-              const Text('Paste Text', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Paste Text',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: textController,
@@ -582,7 +865,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   hintText: 'Paste or type your notes here...',
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surface,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -593,37 +879,60 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: () async {
                     HapticFeedback.lightImpact();
                     final rawText = textController.text.trim();
                     if (rawText.isEmpty) return;
-                    
+
                     Navigator.pop(sheetContext);
-                    setState(() { activeLoadingAction = 'paste'; });
+                    setState(() {
+                      activeLoadingAction = 'paste';
+                    });
 
                     try {
-                      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
+                      final docRef = FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .collection('knowledge_base')
+                          .doc();
                       await docRef.set({
-                        'fileName': 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt',
+                        'fileName':
+                            'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt',
                         'fileUrl': '',
                         'fileType': 'text',
                         'uploadedAt': FieldValue.serverTimestamp(),
                         'aiSummary': rawText,
                       });
 
-                      if (mounted) UIUtils.showFloatingSnackBar(context, 'Text note ingested! Enhancing...');
-                      
+                      if (mounted)
+                        UIUtils.showFloatingSnackBar(
+                          context,
+                          'Text note ingested! Enhancing...',
+                        );
+
                       // Fire off background enhancement
                       _enhanceTextNode(docRef, rawText);
                     } catch (e) {
-                      if (mounted) UIUtils.showFloatingSnackBar(context, 'Failed to save text: $e');
+                      if (mounted)
+                        UIUtils.showFloatingSnackBar(
+                          context,
+                          'Failed to save text: $e',
+                        );
                     } finally {
-                      if (mounted) setState(() { activeLoadingAction = null; });
+                      if (mounted)
+                        setState(() {
+                          activeLoadingAction = null;
+                        });
                     }
                   },
-                  child: const Text('Ingest Text Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Ingest Text Note',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -634,15 +943,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _enhanceTextNode(DocumentReference docRef, String rawText) async {
+  Future<void> _enhanceTextNode(
+    DocumentReference docRef,
+    String rawText,
+  ) async {
     const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
     if (geminiApiKey.isEmpty) return;
 
     try {
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: geminiApiKey);
-      final prompt = "Analyze this raw text. Extract key themes and rewrite it into a highly optimized, structured summary. Return ONLY the summary.\n\nText: $rawText";
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: geminiApiKey,
+      );
+      final prompt =
+          "Analyze this raw text. Extract key themes and rewrite it into a highly optimized, structured summary. Return ONLY the summary.\n\nText: $rawText";
       final response = await model.generateContent([Content.text(prompt)]);
-      
+
       if (response.text != null && response.text!.isNotEmpty) {
         await docRef.update({'aiSummary': response.text!.trim()});
       }
@@ -665,7 +981,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       SubscriptionPaywallScreen.show(context);
       return; // Stops the Generate engine from running
     }
-    
+
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -673,7 +989,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const Scaffold(backgroundColor: Colors.transparent, body: SizedBox());
+        return const Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SizedBox(),
+        );
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
@@ -710,15 +1029,21 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: action.color.withValues(alpha: 0.3)),
               ),
-              child: (
-                (activeLoadingAction == 'import' && action.label == 'Import') ||
-                (activeLoadingAction == 'scan' && action.label == 'Scan') ||
-                (activeLoadingAction == 'voice' && action.label == 'Voice Note') ||
-                (activeLoadingAction == 'paste' && action.label == 'Paste Text')
-              )
+              child:
+                  ((activeLoadingAction == 'import' &&
+                          action.label == 'Import') ||
+                      (activeLoadingAction == 'scan' &&
+                          action.label == 'Scan') ||
+                      (activeLoadingAction == 'voice' &&
+                          action.label == 'Voice Note') ||
+                      (activeLoadingAction == 'paste' &&
+                          action.label == 'Paste Text'))
                   ? Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: action.color),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: action.color,
+                      ),
                     )
                   : Icon(action.icon, color: action.color, size: 24),
             ),
@@ -753,25 +1078,47 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               floating: true,
               backgroundColor: cs.surface.withValues(alpha: 0.9),
               elevation: 0,
-              title: const Text('Neural Canvas', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24, letterSpacing: -0.5)),
+              title: const Text(
+                'Neural Canvas',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                  letterSpacing: -0.5,
+                ),
+              ),
               actions: [
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))
-                        .then((_) { if (mounted) setState(() {}); });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    ).then((_) {
+                      if (mounted) setState(() {});
+                    });
                   },
                   child: Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: StreamBuilder<User?>(
                       stream: FirebaseAuth.instance.userChanges(),
                       builder: (context, snapshot) {
-                        final u = snapshot.data ?? FirebaseAuth.instance.currentUser;
+                        final u =
+                            snapshot.data ?? FirebaseAuth.instance.currentUser;
                         return CircleAvatar(
                           radius: 16,
                           backgroundColor: cs.surfaceContainerHighest,
-                          backgroundImage: u?.photoURL != null ? CachedNetworkImageProvider(u!.photoURL!) : null,
-                          child: u?.photoURL == null ? Icon(Icons.person, size: 20, color: cs.onSurfaceVariant) : null,
+                          backgroundImage: u?.photoURL != null
+                              ? CachedNetworkImageProvider(u!.photoURL!)
+                              : null,
+                          child: u?.photoURL == null
+                              ? Icon(
+                                  Icons.person,
+                                  size: 20,
+                                  color: cs.onSurfaceVariant,
+                                )
+                              : null,
                         );
                       },
                     ),
@@ -781,10 +1128,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   icon: Stack(
                     children: [
                       const Icon(Icons.notifications_none_rounded),
-                      Positioned(right: 0, top: 0, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle))),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  onPressed: () { HapticFeedback.lightImpact(); },
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                  },
                 ),
                 const SizedBox(width: 8),
               ],
@@ -795,17 +1155,27 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseAuth.instance.currentUser != null ? FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots() : null,
+                  stream: FirebaseAuth.instance.currentUser != null
+                      ? FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(FirebaseAuth.instance.currentUser!.uid)
+                            .snapshots()
+                      : null,
                   builder: (context, snapshot) {
                     String? name;
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      final data = snapshot.data!.data() as Map<String, dynamic>?;
+                      final data =
+                          snapshot.data!.data() as Map<String, dynamic>?;
                       if (data != null) {
-                        name = data['fullName'] as String? ?? (data['email'] != null ? data['email'].split('@')[0] : 'Explorer');
+                        name =
+                            data['fullName'] as String? ??
+                            (data['email'] != null
+                                ? data['email'].split('@')[0]
+                                : 'Explorer');
                       }
-                    } 
+                    }
                     name ??= FirebaseAuth.instance.currentUser?.displayName;
-                    
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -829,15 +1199,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               height: 32,
                               animate: true,
                               repeat: true,
-                              errorBuilder: (context, error, stackTrace) => Text(
-                                DateTime.now().hour < 17 ? '☀️' : '🌙',
-                                style: const TextStyle(fontSize: 20),
-                              ),
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Text(
+                                    DateTime.now().hour < 17 ? '☀️' : '🌙',
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Your memory stream is active.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                        Text(
+                          'Your memory stream is active.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                          ),
+                        ),
                       ],
                     );
                   },
@@ -851,7 +1228,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _quickActions.map((action) => _buildQuickAction(context, action)).toList(),
+                  children: _quickActions
+                      .map((action) => _buildQuickAction(context, action))
+                      .toList(),
                 ),
               ),
             ),
@@ -864,7 +1243,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       .collection('users')
                       .doc(user.uid)
                       .collection('upcoming_events')
-                      .where('eventDateTime', isGreaterThanOrEqualTo: DateTime.now().toIso8601String())
+                      .where(
+                        'eventDateTime',
+                        isGreaterThanOrEqualTo: DateTime.now()
+                            .toIso8601String(),
+                      )
                       .orderBy('eventDateTime', descending: false)
                       .limit(3)
                       .snapshots(),
@@ -880,7 +1263,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           HapticFeedback.lightImpact();
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ChronosMatrixScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const ChronosMatrixScreen(),
+                            ),
                           );
                         },
                         child: Column(
@@ -891,7 +1276,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                                color: cs.onSurfaceVariant.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -901,15 +1288,21 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               padding: EdgeInsets.zero,
                               itemCount: snapshot.data!.docs.length,
                               itemBuilder: (context, index) {
-                                final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                                final data =
+                                    snapshot.data!.docs[index].data()
+                                        as Map<String, dynamic>;
                                 final title = data['eventTitle'] ?? 'Event';
                                 final time = data['eventDateTime'] ?? 'TBD';
 
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    color: cs.surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
@@ -922,26 +1315,38 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.5),
+                                              color: const Color(
+                                                0xFF0EA5E9,
+                                              ).withValues(alpha: 0.5),
                                               blurRadius: 8,
-                                            )
+                                            ),
                                           ],
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF0EA5E9)),
+                                      const Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 14,
+                                        color: Color(0xFF0EA5E9),
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           title,
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       Text(
                                         time,
-                                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: cs.onSurfaceVariant,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -958,7 +1363,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
             // --- Memory Reels Feed ---
             if (user == null)
-              const SliverToBoxAdapter(child: Center(child: Text("Sign in to view Memory Reels.")))
+              const SliverToBoxAdapter(
+                child: Center(child: Text("Sign in to view Memory Reels.")),
+              )
             else
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -968,15 +1375,31 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     .orderBy('uploadedAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) return const SliverToBoxAdapter(child: Center(child: Text('Error loading feed.')));
-                  if (!snapshot.hasData) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())));
+                  if (snapshot.hasError)
+                    return const SliverToBoxAdapter(
+                      child: Center(child: Text('Error loading feed.')),
+                    );
+                  if (!snapshot.hasData)
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    );
 
                   final allDocs = snapshot.data!.docs;
                   if (allDocs.isEmpty) {
                     return SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.all(40),
-                        child: Center(child: Text("Your memory vault is empty.", style: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)))),
+                        child: Center(
+                          child: Text(
+                            "Your memory vault is empty.",
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   }
@@ -990,32 +1413,36 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     final data = doc.data() as Map<String, dynamic>;
                     final aiSummary = data['aiSummary']?.toString() ?? '';
                     final ts = data['uploadedAt'] as Timestamp?;
-                    
+
                     if (aiSummary == 'Analysis encountered an error.') {
                       groupC.add(doc);
                     } else if (ts == null) {
                       groupB.add(doc);
                     } else {
                       final d = ts.toDate();
-                      final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-                      if (!groupAClusters.containsKey(key)) groupAClusters[key] = [];
+                      final key =
+                          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+                      if (!groupAClusters.containsKey(key))
+                        groupAClusters[key] = [];
                       groupAClusters[key]!.add(doc);
                     }
                   }
 
-                  final clusterKeys = groupAClusters.keys.toList()..sort((a, b) => b.compareTo(a));
+                  final clusterKeys = groupAClusters.keys.toList()
+                    ..sort((a, b) => b.compareTo(a));
 
                   Widget buildAssetGrid(List<QueryDocumentSnapshot> items) {
                     return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.8,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.8,
+                          ),
                       itemCount: items.length,
                       itemBuilder: (context, i) {
                         final doc = items[i];
@@ -1032,13 +1459,25 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
                               HapticFeedback.lightImpact();
-                              _showDetailModal(context, smartTitle, fileType, fileUrl, aiSummary);
+                              _showDetailModal(
+                                context,
+                                smartTitle,
+                                fileType,
+                                fileUrl,
+                                aiSummary,
+                              );
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                color: cs.surfaceContainerHighest.withValues(
+                                  alpha: 0.5,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                                border: Border.all(
+                                  color: cs.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
                               ),
                               padding: const EdgeInsets.all(8),
                               child: Column(
@@ -1048,7 +1487,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                   const SizedBox(height: 8),
                                   Text(
                                     smartTitle,
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
@@ -1069,7 +1511,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         // Group A
                         ...clusterKeys.map((dateKey) {
                           final items = groupAClusters[dateKey]!;
-                          final firstData = items.first.data() as Map<String, dynamic>;
+                          final firstData =
+                              items.first.data() as Map<String, dynamic>;
                           final dynamicTitle = _generateReelTitle(
                             (firstData['aiSummary'] ?? '').toString(),
                             (firstData['fileType'] ?? '').toString(),
@@ -1079,13 +1522,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  28,
+                                  20,
+                                  16,
+                                ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       dynamicTitle,
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.3,
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
                                     Wrap(
@@ -1095,28 +1547,65 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                         // Cinematic Reel Button
                                         GestureDetector(
                                           onTap: () async {
-                                            final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                                            if (userDoc.data()?['accountTier'] != 'premium') {
-                                              if (context.mounted) showBlurUpsellOverlay(context);
+                                            final userDoc =
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(user.uid)
+                                                    .get();
+                                            if (userDoc
+                                                    .data()?['accountTier'] !=
+                                                'premium') {
+                                              if (context.mounted)
+                                                showBlurUpsellOverlay(context);
                                               return;
                                             }
                                             if (context.mounted) {
-                                              Navigator.push(context, MaterialPageRoute(builder: (context) => ReelStoryboardScreen(dateKey: dateKey, clusterItems: items)));
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ReelStoryboardScreen(
+                                                        dateKey: dateKey,
+                                                        clusterItems: items,
+                                                      ),
+                                                ),
+                                              );
                                             }
                                           },
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.5)),
+                                              color: const Color(
+                                                0xFFA78BFA,
+                                              ).withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: const Color(
+                                                  0xFFA78BFA,
+                                                ).withValues(alpha: 0.5),
+                                              ),
                                             ),
                                             child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.movie_creation_outlined, size: 16, color: Color(0xFFA78BFA)),
+                                                Icon(
+                                                  Icons.movie_creation_outlined,
+                                                  size: 16,
+                                                  color: Color(0xFFA78BFA),
+                                                ),
                                                 SizedBox(width: 6),
-                                                Text("Generate Cinematic Reel", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFA78BFA))),
+                                                Text(
+                                                  "Generate Cinematic Reel",
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFFA78BFA),
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -1125,40 +1614,105 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                         GestureDetector(
                                           onTap: () async {
                                             HapticFeedback.lightImpact();
-                                            final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                                            if (userDoc.data()?['accountTier'] != 'premium') {
-                                              if (context.mounted) showBlurUpsellOverlay(context);
+                                            final userDoc =
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(user.uid)
+                                                    .get();
+                                            if (userDoc
+                                                    .data()?['accountTier'] !=
+                                                'premium') {
+                                              if (context.mounted)
+                                                showBlurUpsellOverlay(context);
                                               return;
                                             }
                                             final filtered = items.where((doc) {
-                                              final data = doc.data() as Map<String, dynamic>;
-                                              final type = data['fileType']?.toString() ?? '';
-                                              if (!type.startsWith('image')) return false;
-                                              final summary = data['aiSummary']?.toString().toLowerCase() ?? '';
-                                              return summary.length < 150 && !summary.contains("document") && !summary.contains("text") && !summary.contains("transcript");
+                                              final data =
+                                                  doc.data()
+                                                      as Map<String, dynamic>;
+                                              final type =
+                                                  data['fileType']
+                                                      ?.toString() ??
+                                                  '';
+                                              if (!type.startsWith('image'))
+                                                return false;
+                                              final summary =
+                                                  data['aiSummary']
+                                                      ?.toString()
+                                                      .toLowerCase() ??
+                                                  '';
+                                              return summary.length < 150 &&
+                                                  !summary.contains(
+                                                    "document",
+                                                  ) &&
+                                                  !summary.contains("text") &&
+                                                  !summary.contains(
+                                                    "transcript",
+                                                  );
                                             }).toList();
 
-                                            if (filtered.isEmpty && context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No suitable lifestyle/scenery images found for a Lookbook.")));
+                                            if (filtered.isEmpty &&
+                                                context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "No suitable lifestyle/scenery images found for a Lookbook.",
+                                                  ),
+                                                ),
+                                              );
                                               return;
                                             }
                                             if (context.mounted) {
-                                              Navigator.push(context, MaterialPageRoute(builder: (context) => ReelStoryboardScreen(dateKey: "$dateKey Lookbook", clusterItems: filtered)));
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ReelStoryboardScreen(
+                                                        dateKey:
+                                                            "$dateKey Lookbook",
+                                                        clusterItems: filtered,
+                                                      ),
+                                                ),
+                                              );
                                             }
                                           },
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                                              color: const Color(
+                                                0xFF10B981,
+                                              ).withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: const Color(
+                                                  0xFF10B981,
+                                                ).withValues(alpha: 0.5),
+                                              ),
                                             ),
                                             child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.auto_awesome_mosaic_outlined, size: 16, color: Color(0xFF10B981)),
+                                                Icon(
+                                                  Icons
+                                                      .auto_awesome_mosaic_outlined,
+                                                  size: 16,
+                                                  color: Color(0xFF10B981),
+                                                ),
                                                 SizedBox(width: 6),
-                                                Text("Launch Visual Lookbook", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                                Text(
+                                                  "Launch Visual Lookbook",
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF10B981),
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -1179,7 +1733,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
                             child: Text(
                               "Non-Dated Snapshots",
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
                             ),
                           ),
                           buildAssetGrid(groupB),
@@ -1191,12 +1749,28 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: ExpansionTile(
-                              collapsedBackgroundColor: cs.errorContainer.withValues(alpha: 0.1),
-                              backgroundColor: cs.errorContainer.withValues(alpha: 0.05),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              leading: Icon(Icons.warning_amber_rounded, color: cs.error),
-                              title: Text("Unprocessed Vault (${groupC.length} assets)", style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                              collapsedBackgroundColor: cs.errorContainer
+                                  .withValues(alpha: 0.1),
+                              backgroundColor: cs.errorContainer.withValues(
+                                alpha: 0.05,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              collapsedShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              leading: Icon(
+                                Icons.warning_amber_rounded,
+                                color: cs.error,
+                              ),
+                              title: Text(
+                                "Unprocessed Vault (${groupC.length} assets)",
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontSize: 14,
+                                ),
+                              ),
                               children: [
                                 const SizedBox(height: 16),
                                 buildAssetGrid(groupC),
@@ -1227,9 +1801,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           children: [
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.6),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.6)),
             ),
             Center(
               child: Material(
@@ -1238,9 +1810,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   width: MediaQuery.of(context).size.width * 0.85,
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1251,19 +1829,32 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.movie_creation_outlined, size: 48, color: Color(0xFFA78BFA)),
+                        child: const Icon(
+                          Icons.movie_creation_outlined,
+                          size: 48,
+                          color: Color(0xFFA78BFA),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       const Text(
                         "CINEMATIC RENDERING UNLOCKED",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Color(0xFFA78BFA)),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          color: Color(0xFFA78BFA),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         "Auto-Memory Reels utilize intensive cloud video composition engines. Upgrade to the Infinite Brain tier (\$49.99/mo) to unlock full-length cinematic video narrative production pipelines.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
                       ),
                       const SizedBox(height: 32),
                       SizedBox(
@@ -1273,7 +1864,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             backgroundColor: const Color(0xFFA78BFA),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           onPressed: () async {
                             final user = FirebaseAuth.instance.currentUser;
@@ -1282,26 +1875,49 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               showDialog(
                                 context: context,
                                 barrierDismissible: false,
-                                builder: (_) => const Center(child: CircularProgressIndicator()),
+                                builder: (_) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               );
-                              await Future.delayed(const Duration(milliseconds: 1500));
-                              await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-                                'accountTier': 'premium',
-                              }, SetOptions(merge: true));
+                              await Future.delayed(
+                                const Duration(milliseconds: 1500),
+                              );
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .set({
+                                    'accountTier': 'premium',
+                                  }, SetOptions(merge: true));
                               if (context.mounted) {
                                 Navigator.of(context).pop(); // pop loading
                                 Navigator.of(context).pop(); // pop overlay
-                                UIUtils.showFloatingSnackBar(context, 'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.');
+                                UIUtils.showFloatingSnackBar(
+                                  context,
+                                  'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.',
+                                );
                               }
                             }
                           },
-                          child: const Text("Upgrade to Infinite Brain", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            "Upgrade to Infinite Brain",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: () { HapticFeedback.lightImpact(); Navigator.of(context).pop(); },
-                        child: Text("Dismiss", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop();
+                        },
+                        child: Text(
+                          "Dismiss",
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1345,20 +1961,25 @@ class _GenerateDialogState extends State<_GenerateDialog> {
           .collection('knowledge_base')
           .get();
 
-      String allSummaries = snapshot.docs.map((d) {
-        final data = d.data();
-        return "Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
-      }).join('\n\n');
+      String allSummaries = snapshot.docs
+          .map((d) {
+            final data = d.data();
+            return "Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
+          })
+          .join('\n\n');
 
-      final systemInstruction = "You are the Neural Canvas Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
+      final systemInstruction =
+          "You are the Neural Canvas Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
 
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
         apiKey: _geminiApiKey,
       );
 
-      final responseStream = model.generateContentStream([Content.text(systemInstruction)]);
-      
+      final responseStream = model.generateContentStream([
+        Content.text(systemInstruction),
+      ]);
+
       await for (final chunk in responseStream) {
         if (chunk.text != null) {
           if (mounted) {
@@ -1411,10 +2032,20 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Creation Engine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.primary)),
+                    Text(
+                      'Creation Engine',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary,
+                      ),
+                    ),
                     IconButton(
                       icon: Icon(Icons.close, color: cs.onSurfaceVariant),
-                      onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                      },
                     ),
                   ],
                 ),
@@ -1426,11 +2057,19 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                     controller: _promptController,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: "What should your Second Brain create today? (e.g., 'Summarize my week', 'Draft an article from my notes')",
-                      hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                      hintText:
+                          "What should your Second Brain create today? (e.g., 'Summarize my week', 'Draft an article from my notes')",
+                      hintStyle: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
                       filled: true,
-                      fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.4),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      fillColor: cs.surfaceContainerHighest.withValues(
+                        alpha: 0.4,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
@@ -1442,11 +2081,22 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                       backgroundColor: cs.primary,
                       foregroundColor: cs.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                     icon: const Icon(Icons.auto_awesome),
-                    label: const Text('Synthesize Matrix', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    onPressed: () { HapticFeedback.lightImpact(); _synthesizeMatrix(); },
+                    label: const Text(
+                      'Synthesize Matrix',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _synthesizeMatrix();
+                    },
                   ),
                 ),
               ] else if (_isGenerating && _generatedContent.isEmpty) ...[
@@ -1457,9 +2107,15 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                       children: [
                         CircularProgressIndicator(color: cs.primary),
                         const SizedBox(height: 24),
-                        const Text('Scanning knowledge coordinates...', style: TextStyle(fontStyle: FontStyle.italic)),
+                        const Text(
+                          'Scanning knowledge coordinates...',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
                         const SizedBox(height: 8),
-                        const Text('Engineering story arc...', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Engineering story arc...',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
                   ),
@@ -1470,9 +2126,21 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                     data: _generatedContent,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(fontSize: 15, color: cs.onSurface, height: 1.5),
-                      h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: cs.primary),
-                      h2: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
+                      p: TextStyle(
+                        fontSize: 15,
+                        color: cs.onSurface,
+                        height: 1.5,
+                      ),
+                      h1: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary,
+                      ),
+                      h2: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
                       listBullet: TextStyle(color: cs.primary),
                     ),
                   ),
@@ -1481,16 +2149,25 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2))),
+                      border: Border(
+                        top: BorderSide(
+                          color: cs.outlineVariant.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         TextButton.icon(
                           onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: _generatedContent));
+                            await Clipboard.setData(
+                              ClipboardData(text: _generatedContent),
+                            );
                             if (context.mounted) {
-                              UIUtils.showFloatingSnackBar(context, 'Copied securely to clipboard!');
+                              UIUtils.showFloatingSnackBar(
+                                context,
+                                'Copied securely to clipboard!',
+                              );
                             }
                           },
                           icon: const Icon(Icons.copy, size: 18),
@@ -1499,7 +2176,10 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                         TextButton.icon(
                           onPressed: () async {
                             // ignore: deprecated_member_use
-                            await Share.share(_generatedContent, subject: 'My Neural Canvas Insight');
+                            await Share.share(
+                              _generatedContent,
+                              subject: 'My Neural Canvas Insight',
+                            );
                           },
                           icon: const Icon(Icons.share, size: 18),
                           label: const Text('Share Narrative'),

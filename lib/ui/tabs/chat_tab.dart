@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../utils/ui_utils.dart';
+import '../../services/auth_service.dart';
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -73,6 +74,8 @@ class _ChatTabState extends State<ChatTab> {
       }
       return;
     }
+
+    if (!await AuthService.checkAndIncrementUsage(context)) return;
 
     String? mediaUrl;
     String messageType = 'text';

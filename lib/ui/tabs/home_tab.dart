@@ -18,6 +18,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
+import '../../services/auth_service.dart';
 import '../screens/subscription_paywall_screen.dart';
 import '../screens/reel_storyboard_screen.dart';
 import '../screens/chronos_matrix_screen.dart';
@@ -355,6 +356,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
   Future<void> _handleImport() async {
     if (activeLoadingAction != null) return;
+    if (!await AuthService.checkAndIncrementUsage(context)) return;
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -408,6 +410,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleScan() async {
+    if (!await AuthService.checkAndIncrementUsage(context)) return;
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -463,6 +466,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleVoiceNote() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    if (!await AuthService.checkAndIncrementUsage(context)) return;
 
     try {
       if (await _audioRecorder.hasPermission()) {
@@ -546,6 +550,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handlePasteText() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    if (!await AuthService.checkAndIncrementUsage(context)) return;
 
     final TextEditingController textController = TextEditingController();
 

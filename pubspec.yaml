@@ -57,6 +57,7 @@ dependencies:
   lottie: ^3.1.0
   google_fonts: ^6.2.1
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 
@@ -108,3 +109,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  ios: true
+  android: false
+  image_path: "assets/icon/app_logo.png"

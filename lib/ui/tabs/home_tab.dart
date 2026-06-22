@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:record/record.dart';
@@ -80,7 +80,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         }
       }
     } catch (e) {
-      debugPrint("Compliance check error: $e");
+      if (kDebugMode) debugPrint("Compliance check error: $e");
     }
   }
 
@@ -647,7 +647,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         await docRef.update({'aiSummary': response.text!.trim()});
       }
     } catch (e) {
-      debugPrint('Failed to enhance text node: $e');
+      if (kDebugMode) debugPrint('Failed to enhance text node: $e');
     }
   }
 

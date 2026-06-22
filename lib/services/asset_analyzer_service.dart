@@ -12,12 +12,12 @@ class AssetAnalyzerService {
   static Future<void> analyzeIngestedAsset(String docId, String fileUrl, String fileType) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      debugPrint("AssetAnalyzer: No user logged in.");
+      if (kDebugMode) debugPrint("AssetAnalyzer: No user logged in.");
       return;
     }
     
     if (_geminiApiKey.isEmpty) {
-      debugPrint("AssetAnalyzer: GEMINI_API_KEY is missing. Cannot perform AI analysis.");
+      if (kDebugMode) debugPrint("AssetAnalyzer: GEMINI_API_KEY is missing. Cannot perform AI analysis.");
       await _updateSummaryAndTitle(docId, "AI Analysis unavailable (Missing API Key)", _fallbackTitle());
       return;
     }
@@ -94,13 +94,13 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
       }
 
       await _updateSummaryAndTitle(docId, summaryToSave, titleToSave);
-      debugPrint("AssetAnalyzer: Successfully generated summary and title for $docId");
+      if (kDebugMode) debugPrint("AssetAnalyzer: Successfully generated summary and title for $docId");
       
       // Secondary pass for Chronos Lens Event Extractor
       await extractEvents(docId, summaryToSave);
         
     } catch (e) {
-      debugPrint("AssetAnalyzer failed: $e");
+      if (kDebugMode) debugPrint("AssetAnalyzer failed: $e");
       await _updateSummaryAndTitle(docId, "Analysis encountered an error.", _fallbackTitle());
     }
   }
@@ -184,16 +184,16 @@ Text: $summaryText
                   );
                 }
               } catch (e) {
-                debugPrint("Failed to parse event time for notification: $e");
+                if (kDebugMode) debugPrint("Failed to parse event time for notification: $e");
               }
             }
           }
           await batch.commit();
-          debugPrint("AssetAnalyzer: Successfully extracted \${events.length} events for $docId");
+          if (kDebugMode) debugPrint("AssetAnalyzer: Successfully extracted \${events.length} events for $docId");
         }
       }
     } catch (e) {
-      debugPrint("AssetAnalyzer event extraction failed: $e");
+      if (kDebugMode) debugPrint("AssetAnalyzer event extraction failed: $e");
     }
   }
 }

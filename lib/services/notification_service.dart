@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:neural_canvas/main.dart'; // To access navigatorKey
@@ -37,7 +38,7 @@ class NotificationService {
 
   void _onDidReceiveNotificationResponse(NotificationResponse response) {
     // Tap action: Use global navigator to push Chronos Matrix timeline
-    debugPrint("Notification Tapped. Payload: ${response.payload}");
+    if (kDebugMode) debugPrint("Notification Tapped. Payload: ${response.payload}");
     navigatorKey.currentState?.pushNamed('/chronosMatrix');
   }
 
@@ -78,6 +79,6 @@ class NotificationService {
       payload: 'chronosMatrix',
     );
     
-    debugPrint("Notification scheduled for: $scheduledTZDate");
+    if (kDebugMode) debugPrint("Notification scheduled for: $scheduledTZDate");
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -29,7 +30,7 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    debugPrint("Firebase init failed: $e");
+    if (kDebugMode) debugPrint("Firebase init failed: $e");
   }
 
   tz.initializeTimeZones();
@@ -110,7 +111,7 @@ class _MainShellState extends State<MainShell> {
         });
       }
     } catch (e) {
-      debugPrint("Biometric failure or bypass: $e");
+      if (kDebugMode) debugPrint("Biometric failure or bypass: $e");
       // Allow standard fallback behavior pin if necessary
     }
   }

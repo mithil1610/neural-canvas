@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -76,7 +77,7 @@ class AiService {
       return aiResponse;
 
     } on FirebaseFunctionsException catch (e) {
-      debugPrint("Firebase Functions Error [${e.code}]: ${e.message}");
+      if (kDebugMode) debugPrint("Firebase Functions Error [${e.code}]: ${e.message}");
       
       String errorMsg = "Error connecting to Neural Core.";
       if (e.code == 'resource-exhausted') {
@@ -150,7 +151,7 @@ class AiService {
         );
       }).toList();
     } catch (e) {
-      debugPrint("Error loading session: $e");
+      if (kDebugMode) debugPrint("Error loading session: $e");
       clearHistory();
     }
   }

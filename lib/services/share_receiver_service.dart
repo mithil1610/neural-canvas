@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,7 +24,7 @@ class ShareReceiverService {
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       _processSharedFiles(value, navigatorKey);
     }, onError: (err) {
-      debugPrint("ReceiveSharingIntent MediaStream Error: $err");
+      if (kDebugMode) debugPrint("ReceiveSharingIntent MediaStream Error: $err");
     });
 
     // 2. For handling media files shared while the app was completely closed (cold start).
@@ -101,9 +101,9 @@ class ShareReceiverService {
         // Fire the asynchronous analyzer immediately
         AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
         
-        debugPrint("Share intent upload completed for $fileName");
+        if (kDebugMode) debugPrint("Share intent upload completed for $fileName");
       } catch (e) {
-        debugPrint("Error analyzing shared asset: $e");
+        if (kDebugMode) debugPrint("Error analyzing shared asset: $e");
       }
       
       // Deactivate immediately when finished

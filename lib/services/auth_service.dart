@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -66,7 +67,7 @@ class AuthService {
       return true;
 
     } catch (e) {
-      debugPrint("Error checking usage: $e");
+      if (kDebugMode) debugPrint("Error checking usage: $e");
       return false; 
     }
   }

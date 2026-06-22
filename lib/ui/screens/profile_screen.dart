@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:neural_canvas/screens/auth_gate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
@@ -147,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _deleteStorageFolder(prefix);
       }
     } catch (e) {
-      debugPrint("Storage delete folder error: $e");
+      if (kDebugMode) debugPrint("Storage delete folder error: $e");
     }
   }
 
@@ -191,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await doc.reference.delete();
           }
         } catch (e) {
-          debugPrint("Firestore sub-collection $coll delete error: $e");
+          if (kDebugMode) debugPrint("Firestore sub-collection $coll delete error: $e");
         }
       }
 
@@ -199,14 +199,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         await FirebaseFirestore.instance.collection('users').doc(uid).delete();
       } catch (e) {
-        debugPrint("Firestore doc delete error: $e");
+        if (kDebugMode) debugPrint("Firestore doc delete error: $e");
       }
 
       // Step D: Permanently delete auth credentials
       try {
         await user.delete();
       } catch (e) {
-        debugPrint("Auth deletion fallback triggered: $e");
+        if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
         await FirebaseAuth.instance.signOut();
       }
 

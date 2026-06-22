@@ -181,11 +181,13 @@ class _ChatTabState extends State<ChatTab> {
         .doc(user.uid)
         .collection('knowledge_base')
         .get();
-        
-    String retrievedContext = knowledgeSnapshot.docs.map((d) {
-      final data = d.data();
-      return "Document Source [Name: ${data['fileName']}]: ${data['aiSummary']}";
-    }).join("\n");
+
+    String retrievedContext = knowledgeSnapshot.docs
+        .map((d) {
+          final data = d.data();
+          return "Document Source [Name: ${data['fileName']}]: ${data['aiSummary']}";
+        })
+        .join("\n");
 
     // 2. Fetch last 5 messages for context
     final historySnapshot = await FirebaseFirestore.instance
@@ -207,7 +209,11 @@ class _ChatTabState extends State<ChatTab> {
       if (doc.id == userMessageRef.id) {
         final List<Part> parts = [];
         if (trimmedText.isNotEmpty) {
-          parts.add(TextPart("You are the Neural Canvas AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText"));
+          parts.add(
+            TextPart(
+              "You are the Neural Canvas AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText",
+            ),
+          );
         } else if (messageType != 'text') {
           parts.add(TextPart("I have attached a $messageType."));
         }
@@ -309,7 +315,8 @@ class _ChatTabState extends State<ChatTab> {
           });
     }
 
-    if (historySnapshot.docs.length == 1) { // 1 User msg (AI msg just added) -> Total 2
+    if (historySnapshot.docs.length == 1) {
+      // 1 User msg (AI msg just added) -> Total 2
       updateChatSessionTitle(activeChatId);
     }
 
@@ -331,13 +338,16 @@ class _ChatTabState extends State<ChatTab> {
           .limit(2)
           .get();
 
-      String openingMessagesContent = messagesSnapshot.docs.map((d) {
-        final data = d.data();
-        final role = data['role'] == 'ai' ? 'AI' : 'User';
-        return "$role: ${data['content']}";
-      }).join('\n');
+      String openingMessagesContent = messagesSnapshot.docs
+          .map((d) {
+            final data = d.data();
+            final role = data['role'] == 'ai' ? 'AI' : 'User';
+            return "$role: ${data['content']}";
+          })
+          .join('\n');
 
-      final prompt = "Review these opening messages from a chat session. Generate a highly descriptive, professional 3-to-4 word summary title for this conversation. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Conversation text logs: $openingMessagesContent";
+      final prompt =
+          "Review these opening messages from a chat session. Generate a highly descriptive, professional 3-to-4 word summary title for this conversation. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Conversation text logs: $openingMessagesContent";
 
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
@@ -348,7 +358,9 @@ class _ChatTabState extends State<ChatTab> {
       final geminiGeneratedTitle = response.text?.trim() ?? 'New Conversation';
 
       // Clean up potential markdown formatting from gemini
-      final cleanTitle = geminiGeneratedTitle.replaceAll('**', '').replaceAll('"', '');
+      final cleanTitle = geminiGeneratedTitle
+          .replaceAll('**', '')
+          .replaceAll('"', '');
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -392,7 +404,7 @@ class _ChatTabState extends State<ChatTab> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            icon: const Icon(Icons.add_comment_rounded, color: Colors.white),
             tooltip: 'Start New Thread',
             onPressed: () {
               HapticFeedback.lightImpact();

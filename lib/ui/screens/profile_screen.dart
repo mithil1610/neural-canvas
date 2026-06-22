@@ -239,12 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final String accountTier = data['accountTier'] ?? 'free';
         final int aiUsageCount = data['aiUsageCount'] ?? 0;
 
-        int limit = 15;
-        if (accountTier == 'premium' || accountTier == 'pro') {
-          limit = 750;
-        } else if (accountTier == 'infinite') {
-          limit = 3000;
-        }
+        int limit = (accountTier == 'free') ? 200 : (accountTier == 'premium' || accountTier == 'pro' ? 750 : 3000);
 
         double progress = aiUsageCount / limit;
         if (progress > 1.0) progress = 1.0;
@@ -274,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Text(
-                        '$aiUsageCount / $limit frames used',
+                        '$aiUsageCount / $limit frames',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white70,

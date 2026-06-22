@@ -16,12 +16,7 @@ class AuthService {
       final String accountTier = data['accountTier'] ?? 'free';
       final int aiUsageCount = data['aiUsageCount'] ?? 0;
 
-      int limit = 15;
-      if (accountTier == 'premium' || accountTier == 'pro') {
-        limit = 750;
-      } else if (accountTier == 'infinite') {
-        limit = 3000;
-      }
+      int limit = (accountTier == 'free') ? 200 : (accountTier == 'premium' || accountTier == 'pro' ? 750 : 3000);
 
       if (aiUsageCount >= limit) {
         if (context.mounted) {
@@ -36,21 +31,15 @@ class AuthService {
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
                   ),
-                  title: const Text('Neural Bandwidth Maximized', style: TextStyle(fontWeight: FontWeight.bold)),
-                  content: const Text(
-                    "Your monthly AI processing frames reset next month. Upgrade now to expand your brain's capacity instantly.",
-                    style: TextStyle(color: Colors.white70),
+                  title: const Text('Beta Bandwidth Reached', style: TextStyle(fontWeight: FontWeight.bold)),
+                  content: Text(
+                    "You've used $limit / $limit of your free monthly Beta frames. Your Second Brain capacity will reset next month!",
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Dismiss', style: TextStyle(color: Colors.white60)),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                      },
-                      child: const Text('Upgrade', style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold)),
+                      child: const Text('Understood', style: TextStyle(color: Colors.white60)),
                     ),
                   ],
                 ),

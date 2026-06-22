@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:neural_canvas/services/notification_service.dart';
+import 'package:neural_canvas/main.dart';
+import 'package:neural_canvas/utils/ui_utils.dart';
 
 class AssetAnalyzerService {
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
@@ -101,6 +103,16 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
         
     } catch (e) {
       if (kDebugMode) debugPrint("AssetAnalyzer failed: $e");
+
+      if (e.toString().contains('RESOURCE_EXHAUSTED') || e.toString().contains('429')) {
+        final context = navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+           UIUtils.showFloatingSnackBar(context, "Neural synapses are processing heavy traffic. Syncing in 3 seconds...");
+        }
+        await Future.delayed(const Duration(seconds: 3));
+        return analyzeIngestedAsset(docId, fileUrl, fileType);
+      }
+
       await _updateSummaryAndTitle(docId, "Analysis encountered an error.", _fallbackTitle());
     }
   }
@@ -194,6 +206,15 @@ Text: $summaryText
       }
     } catch (e) {
       if (kDebugMode) debugPrint("AssetAnalyzer event extraction failed: $e");
+
+      if (e.toString().contains('RESOURCE_EXHAUSTED') || e.toString().contains('429')) {
+        final context = navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+           UIUtils.showFloatingSnackBar(context, "Neural synapses are processing heavy traffic. Syncing in 3 seconds...");
+        }
+        await Future.delayed(const Duration(seconds: 3));
+        return extractEvents(docId, summary);
+      }
     }
   }
 }

@@ -8,7 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';

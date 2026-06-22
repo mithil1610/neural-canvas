@@ -203,15 +203,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // Step D: Permanently delete auth credentials
-      await user.delete();
-
-      // Step E: Pop to clean landing screen
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const AuthGate()),
-          (Route<dynamic> route) => false,
-        );
+      try {
+        await user.delete();
+      } catch (e) {
+        debugPrint("Auth deletion fallback triggered: $e");
+        await FirebaseAuth.instance.signOut();
       }
+
     } catch (e) {
       if (mounted) {
         UIUtils.showFloatingSnackBar(context, 'Failed to purge account: $e');
@@ -221,6 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _isSaving = false;
         });
+        Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
       }
     }
   }

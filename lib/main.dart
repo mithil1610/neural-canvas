@@ -70,6 +70,7 @@ class NeuralCanvasApp extends StatelessWidget {
       ),
       routes: {
         '/chronosMatrix': (context) => const ChronosMatrixScreen(),
+        '/login_or_register': (context) => const AuthGate(),
       },
       home: const AuthGate(),
     );

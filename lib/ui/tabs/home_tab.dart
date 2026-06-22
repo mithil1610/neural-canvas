@@ -1125,27 +1125,74 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: Stack(
-                    children: [
-                      const Icon(Icons.notifications_none_rounded),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444),
-                            shape: BoxShape.circle,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      hasUnreadNotifications = false;
+                    });
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      barrierColor: Colors.black.withValues(alpha: 0.5),
+                      builder: (context) => Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF16161A),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(24),
                           ),
                         ),
+                        padding: const EdgeInsets.all(24),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "System Notifications",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            ListTile(
+                              leading: Icon(
+                                Icons.bolt,
+                                color: Colors.blueAccent,
+                              ),
+                              title: Text(
+                                "Welcome to Public Beta v1.0.0",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              subtitle: Text(
+                                "Your 200 free monthly AI bandwidth frames are fully charged and synchronized.",
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      const Icon(Icons.notifications_none_rounded),
+                      if (hasUnreadNotifications)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                  },
                 ),
                 const SizedBox(width: 8),
               ],

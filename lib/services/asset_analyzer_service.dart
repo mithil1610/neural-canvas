@@ -213,7 +213,7 @@ Text: $summaryText
            UIUtils.showFloatingSnackBar(context, "Neural synapses are processing heavy traffic. Syncing in 3 seconds...");
         }
         await Future.delayed(const Duration(seconds: 3));
-        return extractEvents(docId, summary);
+        return extractEvents(docId, summaryText);
       }
     }
   }

@@ -250,7 +250,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
-  void _showDetailModal(BuildContext context, String fileName, String fileType, String fileUrl, String aiSummary) {
+  void _showDetailModal(BuildContext context, String title, String fileType, String fileUrl, String aiSummary) {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
@@ -297,7 +297,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                fileName,
+                                title,
                                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -1027,7 +1027,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
                               HapticFeedback.lightImpact();
-                              _showDetailModal(context, fileName, fileType, fileUrl, aiSummary);
+                              _showDetailModal(context, smartTitle, fileType, fileUrl, aiSummary);
                             },
                             child: Container(
                               decoration: BoxDecoration(

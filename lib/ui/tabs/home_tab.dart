@@ -48,8 +48,7 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
-  bool _isImporting = false;
-  bool _isRecording = false;
+  String? activeLoadingAction;
   final _audioRecorder = AudioRecorder();
 
   @override
@@ -355,7 +354,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleImport() async {
-    if (_isImporting) return;
+    if (activeLoadingAction != null) return;
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -369,7 +368,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      setState(() { _isImporting = true; });
+      setState(() { activeLoadingAction = 'import'; });
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = image.name;
@@ -404,7 +403,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
     } finally {
-      if (mounted) setState(() { _isImporting = false; });
+      if (mounted) setState(() { activeLoadingAction = null; });
     }
   }
 
@@ -422,7 +421,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      setState(() { _isImporting = true; });
+      setState(() { activeLoadingAction = 'scan'; });
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = image.name;
@@ -457,7 +456,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Scan failed: $e');
     } finally {
-      if (mounted) setState(() { _isImporting = false; });
+      if (mounted) setState(() { activeLoadingAction = null; });
     }
   }
 
@@ -474,7 +473,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           const RecordConfig(encoder: AudioEncoder.aacLc), // m4a/aac container
           path: filePath,
         );
-        setState(() { _isRecording = true; });
+        setState(() { activeLoadingAction = 'voice'; });
 
         if (mounted) {
           showDialog(
@@ -500,7 +499,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       HapticFeedback.lightImpact();
                       Navigator.pop(dialogContext); // Close dialog
                       final path = await _audioRecorder.stop();
-                      setState(() { _isRecording = false; _isImporting = true; });
+                      setState(() { activeLoadingAction = 'voice'; });
 
                       if (path != null) {
                         final file = File(path);
@@ -526,7 +525,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         if (!mounted) return;
                         UIUtils.showFloatingSnackBar(context, 'Voice note ingested!');
                       }
-                      if (mounted) setState(() { _isImporting = false; });
+                      if (mounted) setState(() { activeLoadingAction = null; });
                     },
                     child: const Text('Stop & Save'),
                   ),
@@ -539,7 +538,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         if (mounted) UIUtils.showFloatingSnackBar(context, 'Microphone permission denied.');
       }
     } catch (e) {
-      if (mounted) setState(() { _isRecording = false; _isImporting = false; });
+      if (mounted) setState(() { activeLoadingAction = null; });
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
     }
   }
@@ -597,7 +596,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     if (rawText.isEmpty) return;
                     
                     Navigator.pop(sheetContext);
-                    setState(() { _isImporting = true; });
+                    setState(() { activeLoadingAction = 'paste'; });
 
                     try {
                       final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').doc();
@@ -616,7 +615,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     } catch (e) {
                       if (mounted) UIUtils.showFloatingSnackBar(context, 'Failed to save text: $e');
                     } finally {
-                      if (mounted) setState(() { _isImporting = false; });
+                      if (mounted) setState(() { activeLoadingAction = null; });
                     }
                   },
                   child: const Text('Ingest Text Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -706,7 +705,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: action.color.withValues(alpha: 0.3)),
               ),
-              child: ((_isImporting && (action.label == 'Import' || action.label == 'Scan' || action.label == 'Voice Note')) || (_isRecording && action.label == 'Voice Note'))
+              child: (
+                (activeLoadingAction == 'import' && action.label == 'Import') ||
+                (activeLoadingAction == 'scan' && action.label == 'Scan') ||
+                (activeLoadingAction == 'voice' && action.label == 'Voice Note') ||
+                (activeLoadingAction == 'paste' && action.label == 'Paste Text')
+              )
                   ? Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: CircularProgressIndicator(strokeWidth: 2, color: action.color),

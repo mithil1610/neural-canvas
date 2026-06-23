@@ -1082,7 +1082,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               backgroundColor: cs.surface.withValues(alpha: 0.9),
               elevation: 0,
               title: const Text(
-                'Neural Canvas',
+                'Axiom',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 24,
@@ -2019,7 +2019,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
           .join('\n\n');
 
       final systemInstruction =
-          "You are the Neural Canvas Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
+          "You are the Axiom Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
 
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
@@ -2228,7 +2228,7 @@ class _GenerateDialogState extends State<_GenerateDialog> {
                             // ignore: deprecated_member_use
                             await Share.share(
                               _generatedContent,
-                              subject: 'My Neural Canvas Insight',
+                              subject: 'My Axiom Insight',
                             );
                           },
                           icon: const Icon(Icons.share, size: 18),

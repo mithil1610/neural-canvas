@@ -20,8 +20,14 @@ class ChatHistoryScreen extends StatelessWidget {
     return "just now";
   }
 
-  void _showEditTitleDialog(BuildContext context, DocumentReference docRef, String currentTitle) {
-    final TextEditingController controller = TextEditingController(text: currentTitle);
+  void _showEditTitleDialog(
+    BuildContext context,
+    DocumentReference docRef,
+    String currentTitle,
+  ) {
+    final TextEditingController controller = TextEditingController(
+      text: currentTitle,
+    );
     showDialog(
       context: context,
       builder: (context) {
@@ -71,7 +77,10 @@ class ChatHistoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Chat History', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Chat History',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -80,7 +89,9 @@ class ChatHistoryScreen extends StatelessWidget {
         stream: query.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error loading history: ${snapshot.error}'));
+            return Center(
+              child: Text('Error loading history: ${snapshot.error}'),
+            );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -120,10 +131,10 @@ class ChatHistoryScreen extends StatelessWidget {
                   final chatData = doc.data() as Map<String, dynamic>;
                   final chatRef = doc.reference;
                   chatRef.delete();
-                  
+
                   ScaffoldMessenger.of(context).clearSnackBars();
                   UIUtils.showFloatingSnackBar(
-                    context, 
+                    context,
                     'Chat deleted',
                     action: SnackBarAction(
                       label: 'Undo',
@@ -136,17 +147,26 @@ class ChatHistoryScreen extends StatelessWidget {
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Material(
                     color: Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      splashColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      highlightColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                      splashColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      highlightColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.05),
                       onTap: () => onSessionSelected(session.id),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -155,7 +175,9 @@ class ChatHistoryScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -170,9 +192,11 @@ class ChatHistoryScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    session.title?.isNotEmpty == true 
-                                        ? session.title! 
-                                        : (session.lastMessage.isEmpty ? "New Conversation" : session.lastMessage),
+                                    session.title?.isNotEmpty == true
+                                        ? session.title!
+                                        : (session.lastMessage.isEmpty
+                                              ? "New Conversation"
+                                              : session.lastMessage),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -186,16 +210,30 @@ class ChatHistoryScreen extends StatelessWidget {
                                     "Updated ${_timeAgo(session.updatedAt)}",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.edit_outlined, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                size: 20,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.5),
+                              ),
                               onPressed: () {
-                                _showEditTitleDialog(context, doc.reference, session.title ?? "");
+                                _showEditTitleDialog(
+                                  context,
+                                  doc.reference,
+                                  session.title ?? "",
+                                );
                               },
                             ),
                           ],

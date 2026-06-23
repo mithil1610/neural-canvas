@@ -12,7 +12,8 @@ import 'package:neural_canvas/main.dart';
 
 class ShareReceiverService {
   // Singleton pattern
-  static final ShareReceiverService _instance = ShareReceiverService._internal();
+  static final ShareReceiverService _instance =
+      ShareReceiverService._internal();
   factory ShareReceiverService() => _instance;
   ShareReceiverService._internal();
 
@@ -21,14 +22,22 @@ class ShareReceiverService {
   void initialize(GlobalKey<NavigatorState> navigatorKey) {
     if (kIsWeb) return; // Web does not support receive_sharing_intent
     // 1. For handling media files shared while the app is already open in the background.
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      _processSharedFiles(value, navigatorKey);
-    }, onError: (err) {
-      if (kDebugMode) debugPrint("ReceiveSharingIntent MediaStream Error: $err");
-    });
+    _intentDataStreamSubscription = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen(
+          (List<SharedMediaFile> value) {
+            _processSharedFiles(value, navigatorKey);
+          },
+          onError: (err) {
+            if (kDebugMode)
+              debugPrint("ReceiveSharingIntent MediaStream Error: $err");
+          },
+        );
 
     // 2. For handling media files shared while the app was completely closed (cold start).
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getInitialMedia().then((
+      List<SharedMediaFile> value,
+    ) {
       _processSharedFiles(value, navigatorKey);
     });
   }
@@ -37,7 +46,10 @@ class ShareReceiverService {
     _intentDataStreamSubscription?.cancel();
   }
 
-  Future<void> _processSharedFiles(List<SharedMediaFile> files, GlobalKey<NavigatorState> navigatorKey) async {
+  Future<void> _processSharedFiles(
+    List<SharedMediaFile> files,
+    GlobalKey<NavigatorState> navigatorKey,
+  ) async {
     if (files.isEmpty) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -64,7 +76,8 @@ class ShareReceiverService {
         } else {
           aiType = AiProcessingType.text;
         }
-      } else if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      } else if (file.type == SharedMediaType.text ||
+          file.type == SharedMediaType.url) {
         aiType = AiProcessingType.text;
       }
 
@@ -76,9 +89,9 @@ class ShareReceiverService {
 
       try {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('users/${user.uid}/knowledge_base/${timestamp}_$fileName');
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
+        );
 
         final uploadTask = storageRef.putFile(File(path));
         final snapshot = await uploadTask;
@@ -97,15 +110,16 @@ class ShareReceiverService {
           'uploadedAt': FieldValue.serverTimestamp(),
           'aiSummary': 'Processing data...',
         });
-        
+
         // Fire the asynchronous analyzer immediately
         AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
-        
-        if (kDebugMode) debugPrint("Share intent upload completed for $fileName");
+
+        if (kDebugMode)
+          debugPrint("Share intent upload completed for $fileName");
       } catch (e) {
         if (kDebugMode) debugPrint("Error analyzing shared asset: $e");
       }
-      
+
       // Deactivate immediately when finished
       globalAiProcessingState.value = null;
     }

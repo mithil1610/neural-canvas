@@ -18,7 +18,10 @@ class ChatSession {
       id: id,
       title: data['title'],
       lastMessage: data['lastMessage'] ?? '',
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt:
+          (data['updatedAt'] as Timestamp?)?.toDate() ??
+          (data['createdAt'] as Timestamp?)?.toDate() ??
+          DateTime.now(),
     );
   }
 

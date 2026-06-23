@@ -46,7 +46,7 @@ class NeuralCanvasApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'Neural Canvas',
+      title: 'Axiom',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return Stack(children: [child!, const AiProcessingOverlay()]);
@@ -67,7 +67,9 @@ class NeuralCanvasApp extends StatelessWidget {
           outlineVariant: Color(0xFF475569), // Slate 600
         ),
         scaffoldBackgroundColor: const Color(0xFF0A0A0E), // Deep background
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(
+          ThemeData.dark().textTheme,
+        ),
       ),
       routes: {
         '/chronosMatrix': (context) => const ChronosMatrixScreen(),
@@ -102,8 +104,12 @@ class _MainShellState extends State<MainShell> {
   Future<void> _authenticateBiometrics() async {
     try {
       bool authenticated = await auth.authenticate(
-        localizedReason: 'Authenticate matrix access to unlock your Second Brain',
-        options: const AuthenticationOptions(stickyAuth: true, biometricOnly: true),
+        localizedReason:
+            'Authenticate matrix access to unlock your Second Brain',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
       );
       if (authenticated) {
         setState(() {
@@ -158,9 +164,7 @@ class _MainShellState extends State<MainShell> {
             children: [
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.5),
-                ),
+                child: Container(color: Colors.black.withValues(alpha: 0.5)),
               ),
               Center(
                 child: Column(
@@ -186,8 +190,13 @@ class _MainShellState extends State<MainShell> {
                       icon: const Icon(Icons.fingerprint),
                       label: const Text('Tap to Unlock'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
                         foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),

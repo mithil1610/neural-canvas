@@ -54,9 +54,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isUploading = true;
       });
 
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('users/${_user.uid}/profile_pic/avatar.jpg');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'users/${_user.uid}/profile_pic/avatar.jpg',
+      );
 
       UploadTask uploadTask;
       if (kIsWeb) {
@@ -74,10 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _user.updatePhotoURL(newUrl);
 
       // Second: Save to database profile document
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_user.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(_user.uid).set({
         'photoUrl': newUrl,
         'displayName': _nameController.text,
       }, SetOptions(merge: true));
@@ -86,7 +83,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _user.reload();
 
       if (mounted) {
-        UIUtils.showFloatingSnackBar(context, 'Profile picture synchronized successfully!');
+        UIUtils.showFloatingSnackBar(
+          context,
+          'Profile picture synchronized successfully!',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -112,17 +112,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _user.updateDisplayName(_nameController.text);
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_user.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(_user.uid).set({
         'displayName': _nameController.text,
       }, SetOptions(merge: true));
 
       await _user.reload();
 
       if (mounted) {
-        UIUtils.showFloatingSnackBar(context, 'Profile metadata synchronized successfully!');
+        UIUtils.showFloatingSnackBar(
+          context,
+          'Profile metadata synchronized successfully!',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -157,12 +157,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Account & Purge Vault'),
-        content: const Text('This action is irreversible. All your data, uploads, and knowledge graphs will be permanently erased. Proceed?'),
+        content: const Text(
+          'This action is irreversible. All your data, uploads, and knowledge graphs will be permanently erased. Proceed?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Purge', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Purge',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -180,18 +188,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       // Step A: Storage
-      await _deleteStorageFolder(FirebaseStorage.instance.ref().child('users/$uid'));
+      await _deleteStorageFolder(
+        FirebaseStorage.instance.ref().child('users/$uid'),
+      );
 
       // Step B: Firestore sub-collections
       final collections = ['knowledge_base', 'upcoming_events', 'chats'];
       for (var coll in collections) {
         try {
-          final snapshot = await FirebaseFirestore.instance.collection('users').doc(uid).collection(coll).get();
+          final snapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection(coll)
+              .get();
           for (var doc in snapshot.docs) {
             await doc.reference.delete();
           }
         } catch (e) {
-          if (kDebugMode) debugPrint("Firestore sub-collection $coll delete error: $e");
+          if (kDebugMode)
+            debugPrint("Firestore sub-collection $coll delete error: $e");
         }
       }
 
@@ -209,7 +224,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
         await FirebaseAuth.instance.signOut();
       }
-
     } catch (e) {
       if (mounted) {
         UIUtils.showFloatingSnackBar(context, 'Failed to purge account: $e');
@@ -219,7 +233,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _isSaving = false;
         });
-        Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
       }
     }
   }
@@ -229,7 +245,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return const SizedBox.shrink();
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const SizedBox.shrink();
@@ -239,7 +258,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final String accountTier = data['accountTier'] ?? 'free';
         final int aiUsageCount = data['aiUsageCount'] ?? 0;
 
-        int limit = (accountTier == 'free') ? 200 : (accountTier == 'premium' || accountTier == 'pro' ? 750 : 3000);
+        int limit = (accountTier == 'free')
+            ? 200
+            : (accountTier == 'premium' || accountTier == 'pro' ? 750 : 3000);
 
         double progress = aiUsageCount / limit;
         if (progress > 1.0) progress = 1.0;
@@ -252,7 +273,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +316,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF0EA5E9), Color(0xFFA78BFA)], // Electric Blue to Neural Purple
+                            colors: [
+                              Color(0xFF0EA5E9),
+                              Color(0xFFA78BFA),
+                            ], // Electric Blue to Neural Purple
                           ),
                         ),
                       ),
@@ -317,7 +344,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile Configuration', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Profile Configuration',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -338,12 +368,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 60,
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           backgroundImage: _user.photoURL != null
                               ? CachedNetworkImageProvider(_user.photoURL!)
                               : null,
                           child: _user.photoURL == null && !_isUploading
-                              ? Icon(Icons.person, size: 60, color: Theme.of(context).colorScheme.onSurfaceVariant)
+                              ? Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                )
                               : null,
                         ),
                         if (_isUploading)
@@ -355,7 +393,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               shape: BoxShape.circle,
                             ),
                             child: const Center(
-                              child: CircularProgressIndicator(color: Colors.white),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         if (!_isUploading)
@@ -367,7 +407,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 3),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).scaffoldBackgroundColor,
+                                  width: 3,
+                                ),
                               ),
                               child: Icon(
                                 Icons.camera_alt,
@@ -401,15 +446,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: FilledButton(
                       onPressed: _isSaving ? null : _saveProfile,
                       style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isSaving
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
-                          : const Text('Save Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          : const Text(
+                              'Save Configuration',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -419,13 +475,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       await FirebaseAuth.instance.signOut();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const AuthGate()),
+                          MaterialPageRoute(
+                            builder: (context) => const AuthGate(),
+                          ),
                           (Route<dynamic> route) => false,
                         );
                       }
                     },
                     icon: const Icon(Icons.logout, color: Colors.redAccent),
-                    label: const Text('Sign Out / Log Out', style: TextStyle(color: Colors.redAccent)),
+                    label: const Text(
+                      'Sign Out / Log Out',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   TextButton(

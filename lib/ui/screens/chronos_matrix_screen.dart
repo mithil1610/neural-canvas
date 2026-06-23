@@ -18,11 +18,18 @@ class ChronosMatrixScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.chevron_left),
-          onPressed: () { HapticFeedback.lightImpact(); Navigator.of(context).pop(); },
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.of(context).pop();
+          },
         ),
         title: const Text(
           "CHRONOS MATRIX",
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+          ),
         ),
         centerTitle: true,
       ),
@@ -33,12 +40,17 @@ class ChronosMatrixScreen extends StatelessWidget {
                   .collection('users')
                   .doc(user.uid)
                   .collection('upcoming_events')
-                  .where('eventDateTime', isGreaterThanOrEqualTo: DateTime.now().toIso8601String())
+                  .where(
+                    'eventDateTime',
+                    isGreaterThanOrEqualTo: DateTime.now().toIso8601String(),
+                  )
                   .orderBy('eventDateTime', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text("Error loading events: \${snapshot.error}"));
+                  return Center(
+                    child: Text("Error loading events: \${snapshot.error}"),
+                  );
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -49,7 +61,9 @@ class ChronosMatrixScreen extends StatelessWidget {
                   return Center(
                     child: Text(
                       "No upcoming events detected in your timeline.",
-                      style: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
                     ),
                   );
                 }
@@ -67,9 +81,13 @@ class ChronosMatrixScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                        color: cs.surfaceContainerHighest.withValues(
+                          alpha: 0.3,
+                        ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,10 +95,15 @@ class ChronosMatrixScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.location_on_outlined, color: Color(0xFF10B981)),
+                            child: const Icon(
+                              Icons.location_on_outlined,
+                              color: Color(0xFF10B981),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -89,28 +112,49 @@ class ChronosMatrixScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   title,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    const Icon(Icons.schedule, size: 14, color: Colors.grey),
+                                    const Icon(
+                                      Icons.schedule,
+                                      size: 14,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       time,
-                                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.8)),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: cs.onSurfaceVariant.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    const Icon(Icons.place_outlined, size: 14, color: Colors.grey),
+                                    const Icon(
+                                      Icons.place_outlined,
+                                      size: 14,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
                                         location,
-                                        style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withValues(alpha: 0.8)),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: cs.onSurfaceVariant.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],

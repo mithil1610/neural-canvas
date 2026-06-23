@@ -10,14 +10,14 @@ class AiProcessingData {
   String get message {
     switch (type) {
       case AiProcessingType.pdf:
-        return "Neural Canvas is analyzing your document clauses...";
+        return "Axiom is analyzing your document clauses...";
       case AiProcessingType.image:
         return "Running OCR and extracting memories...";
       case AiProcessingType.video:
         return "Mapping scene structures and mood...";
       case AiProcessingType.text:
       case AiProcessingType.unknown:
-        return "Neural Canvas is analyzing your shared asset...";
+        return "Axiom is analyzing your shared asset...";
     }
   }
 
@@ -38,7 +38,9 @@ class AiProcessingData {
 }
 
 // Global state variable
-final ValueNotifier<AiProcessingData?> globalAiProcessingState = ValueNotifier(null);
+final ValueNotifier<AiProcessingData?> globalAiProcessingState = ValueNotifier(
+  null,
+);
 
 class AiProcessingOverlay extends StatelessWidget {
   const AiProcessingOverlay({super.key});
@@ -57,10 +59,7 @@ class AiProcessingOverlay extends StatelessWidget {
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 300),
             builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: child,
-              );
+              return Opacity(opacity: value, child: child);
             },
             child: Material(
               color: Colors.transparent,
@@ -73,7 +72,7 @@ class AiProcessingOverlay extends StatelessWidget {
                       color: Colors.black.withValues(alpha: 0.5),
                     ),
                   ),
-                  
+
                   // Content
                   Center(
                     child: Column(
@@ -82,7 +81,7 @@ class AiProcessingOverlay extends StatelessWidget {
                         // Pulsing Icon / Loading Animation
                         _PulsingIcon(icon: processingData.icon),
                         const SizedBox(height: 32),
-                        
+
                         // Dynamic Text
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -118,7 +117,8 @@ class _PulsingIcon extends StatefulWidget {
   State<_PulsingIcon> createState() => _PulsingIconState();
 }
 
-class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderStateMixin {
+class _PulsingIconState extends State<_PulsingIcon>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _scaleAnimation;
   late final Animation<double> _opacityAnimation;
@@ -131,13 +131,15 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
-    _opacityAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -160,7 +162,9 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
               height: 100 * _scaleAnimation.value,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2 * _opacityAnimation.value),
+                color: Theme.of(context).colorScheme.primary.withValues(
+                  alpha: 0.2 * _opacityAnimation.value,
+                ),
               ),
             ),
             // Inner circle
@@ -179,7 +183,9 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.4),
                     blurRadius: 20 * _scaleAnimation.value,
                     spreadRadius: 5 * _scaleAnimation.value,
                   ),
@@ -196,11 +202,7 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white30),
                     ),
                   ),
-                  Icon(
-                    widget.icon,
-                    size: 32,
-                    color: Colors.white,
-                  ),
+                  Icon(widget.icon, size: 32, color: Colors.white),
                 ],
               ),
             ),

@@ -19,10 +19,11 @@ class ReelStoryboardScreen extends StatefulWidget {
   State<ReelStoryboardScreen> createState() => _ReelStoryboardScreenState();
 }
 
-class _ReelStoryboardScreenState extends State<ReelStoryboardScreen> with SingleTickerProviderStateMixin {
+class _ReelStoryboardScreenState extends State<ReelStoryboardScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
-  
+
   bool _isLoading = true;
   String _storyboardMarkdown = "";
 
@@ -31,9 +32,15 @@ class _ReelStoryboardScreenState extends State<ReelStoryboardScreen> with Single
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+
     _generateStoryboard();
   }
 
@@ -50,14 +57,21 @@ class _ReelStoryboardScreenState extends State<ReelStoryboardScreen> with Single
     }
 
     try {
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: _geminiApiKey);
-      
-      List<String> summaries = widget.clusterItems.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return data['aiSummary']?.toString() ?? '';
-      }).where((s) => s.isNotEmpty).toList();
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: _geminiApiKey,
+      );
 
-      final prompt = """
+      List<String> summaries = widget.clusterItems
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data['aiSummary']?.toString() ?? '';
+          })
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      final prompt =
+          """
 Act as a Master Short-Form Director. Analyze these media segment summaries representing a cluster of memories. 
 Synthesize a definitive chronological video narrative story arc script layout. 
 Generate dynamic subtitle text overlays for every slide/scene transition and suggest an overarching theme vibe or musical tempo score template. 
@@ -68,11 +82,13 @@ ${summaries.join('\n\n---\n\n')}
 """;
 
       final response = await model.generateContent([Content.text(prompt)]);
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _storyboardMarkdown = response.text ?? "> **Notice:** The director could not assemble a narrative from these segments.";
+        _storyboardMarkdown =
+            response.text ??
+            "> **Notice:** The director could not assemble a narrative from these segments.";
       });
       _animController.forward();
     } catch (e) {
@@ -109,7 +125,7 @@ ${summaries.join('\n\n---\n\n')}
               ),
             ),
           ),
-          
+
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
@@ -127,7 +143,10 @@ ${summaries.join('\n\n---\n\n')}
                     children: [
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pop(context);
+                        },
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -142,7 +161,7 @@ ${summaries.join('\n\n---\n\n')}
                     ],
                   ),
                 ),
-                
+
                 // Content
                 Expanded(
                   child: _isLoading
@@ -150,29 +169,73 @@ ${summaries.join('\n\n---\n\n')}
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(color: Colors.white54, strokeWidth: 2),
+                              CircularProgressIndicator(
+                                color: Colors.white54,
+                                strokeWidth: 2,
+                              ),
                               SizedBox(height: 24),
-                              Text("Synthesizing Narrative...", style: TextStyle(color: Colors.white54, fontSize: 16, letterSpacing: 1.2)),
+                              Text(
+                                "Synthesizing Narrative...",
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 16,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
                             ],
                           ),
                         )
                       : FadeTransition(
                           opacity: _fadeAnim,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                             child: MarkdownBody(
                               data: _storyboardMarkdown,
                               styleSheet: MarkdownStyleSheet(
-                                p: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.6),
-                                h1: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, height: 1.4),
-                                h2: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600, height: 1.4),
-                                h3: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                                blockquote: const TextStyle(color: Color(0xFFA78BFA), fontSize: 16, fontStyle: FontStyle.italic),
-                                blockquoteDecoration: BoxDecoration(
-                                  border: const Border(left: BorderSide(color: Color(0xFFA78BFA), width: 4)),
-                                  color: const Color(0xFFA78BFA).withValues(alpha: 0.1),
+                                p: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  height: 1.6,
                                 ),
-                                listBullet: const TextStyle(color: Colors.white54),
+                                h1: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.4,
+                                ),
+                                h2: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.4,
+                                ),
+                                h3: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                blockquote: const TextStyle(
+                                  color: Color(0xFFA78BFA),
+                                  fontSize: 16,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                blockquoteDecoration: BoxDecoration(
+                                  border: const Border(
+                                    left: BorderSide(
+                                      color: Color(0xFFA78BFA),
+                                      width: 4,
+                                    ),
+                                  ),
+                                  color: const Color(
+                                    0xFFA78BFA,
+                                  ).withValues(alpha: 0.1),
+                                ),
+                                listBullet: const TextStyle(
+                                  color: Colors.white54,
+                                ),
                               ),
                             ),
                           ),

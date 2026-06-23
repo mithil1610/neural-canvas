@@ -13,22 +13,25 @@ class NotificationService {
 
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-        
+
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-            requestAlertPermission: true,
-            requestBadgePermission: true,
-            requestSoundPermission: true);
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsDarwin,
+        );
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -38,7 +41,8 @@ class NotificationService {
 
   void _onDidReceiveNotificationResponse(NotificationResponse response) {
     // Tap action: Use global navigator to push Chronos Matrix timeline
-    if (kDebugMode) debugPrint("Notification Tapped. Payload: ${response.payload}");
+    if (kDebugMode)
+      debugPrint("Notification Tapped. Payload: ${response.payload}");
     navigatorKey.currentState?.pushNamed('/chronosMatrix');
   }
 
@@ -47,21 +51,25 @@ class NotificationService {
     required String body,
     required DateTime scheduledDate,
   }) async {
-    final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(scheduledDate, tz.local);
-    
+    final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(
+      scheduledDate,
+      tz.local,
+    );
+
     // Safety check: ensure scheduled date is strictly in the future
     if (scheduledTZDate.isBefore(tz.TZDateTime.now(tz.local))) {
       return;
     }
 
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'chronos_channel',
-      'Chronos Events',
-      channelDescription: 'Notifications for upcoming timeline events',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'chronos_channel',
+          'Chronos Events',
+          channelDescription: 'Notifications for upcoming timeline events',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidDetails,
       iOS: DarwinNotificationDetails(),
@@ -78,7 +86,7 @@ class NotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'chronosMatrix',
     );
-    
+
     if (kDebugMode) debugPrint("Notification scheduled for: $scheduledTZDate");
   }
 }

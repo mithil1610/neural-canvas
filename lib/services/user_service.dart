@@ -5,10 +5,16 @@ class UserService {
   /// Pulls from the 'accountTier' field inside the root /users/{uid} Firestore document.
   static Future<bool> isUserPremium(String uid) async {
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (userDoc.exists) {
         final data = userDoc.data();
-        if (data != null && (data['isPro'] == true || data['accountTier'] == 'pro' || data['accountTier'] == 'premium')) {
+        if (data != null &&
+            (data['isPro'] == true ||
+                data['accountTier'] == 'pro' ||
+                data['accountTier'] == 'premium')) {
           return true;
         }
       }

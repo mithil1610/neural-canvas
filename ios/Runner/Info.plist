@@ -16,17 +16,17 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Neural Canvas requires camera access to capture immediate document scans and physical visual context notes.</string>
+	<string>Axiom requires camera access to capture immediate document scans and physical visual context notes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Neural Canvas requires access to your photo library to import rolling conversation screenshots and media assets.</string>
+	<string>Axiom requires access to your photo library to import rolling conversation screenshots and media assets.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Neural Canvas requires microphone access to record and transcribe fluid audio ambient voice thoughts into your knowledge matrix.</string>
+	<string>Axiom requires microphone access to record and transcribe fluid audio ambient voice thoughts into your knowledge matrix.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Neural Canvas</string>
+	<string>Axiom</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -60,6 +60,6 @@
 	</array>
 
 	<key>NSFaceIDUsageDescription</key>
-	<string>Neural Canvas requires secure local biometric authentication to protect access to your private memory vaults.</string>
+	<string>Axiom requires secure local biometric authentication to protect access to your private memory vaults.</string>
 </dict>
 </plist>

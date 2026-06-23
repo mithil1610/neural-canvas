@@ -211,7 +211,7 @@ class _ChatTabState extends State<ChatTab> {
         if (trimmedText.isNotEmpty) {
           parts.add(
             TextPart(
-              "You are the Neural Canvas AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText",
+              "You are the Axiom AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText",
             ),
           );
         } else if (messageType != 'text') {

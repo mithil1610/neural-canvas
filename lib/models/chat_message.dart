@@ -11,7 +11,12 @@ class ChatMessage {
     this.isSystem = false,
   });
 
-  ChatMessage copyWith({String? text, bool? isAssistant, bool? isStreaming, bool? isSystem}) {
+  ChatMessage copyWith({
+    String? text,
+    bool? isAssistant,
+    bool? isStreaming,
+    bool? isSystem,
+  }) {
     return ChatMessage(
       text: text ?? this.text,
       isAssistant: isAssistant ?? this.isAssistant,

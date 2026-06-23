@@ -86,7 +86,7 @@ class _AuthGateState extends State<AuthGate> {
                             children: [
                               const TextSpan(
                                 text:
-                                    "NEURAL CANVAS • PUBLIC BETA PRIVACY POLICY & DATA GOVERNANCE\n\n",
+                                    "AXIOM • PUBLIC BETA PRIVACY POLICY & DATA GOVERNANCE\n\n",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -104,7 +104,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    "By creating an account, you grant Neural Canvas explicit permission to securely process your uploaded content (including images, text entries, and voice records) through advanced Large Language Models.\n\n",
+                                    "By creating an account, you grant Axiom explicit permission to securely process your uploaded content (including images, text entries, and voice records) through advanced Large Language Models.\n\n",
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -121,7 +121,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    "To deliver automated title indexing, multi-format summaries, RAG chat insights, and timeline extractions, Neural Canvas securely transmits your user-generated inputs to Google LLC API Infrastructure (utilizing the Google Gemini model engine). Your uploaded data is processed strictly for rendering contextual insights within your private dashboard. Your personal inputs, file uploads, and core analytical logs are never sold to data brokers, never utilized for targeted advertising, and are never used by Google to train public baseline AI models.\n\n",
+                                    "To deliver automated title indexing, multi-format summaries, RAG chat insights, and timeline extractions, Axiom securely transmits your user-generated inputs to Google LLC API Infrastructure (utilizing the Google Gemini model engine). Your uploaded data is processed strictly for rendering contextual insights within your private dashboard. Your personal inputs, file uploads, and core analytical logs are never sold to data brokers, never utilized for targeted advertising, and are never used by Google to train public baseline AI models.\n\n",
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -138,7 +138,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    "Optional security access controls—including Apple Face ID or Android Touch ID—are executed 100% locally on your physical device via the hardware's Secure Enclave layer. Neural Canvas never captures, transmits, views, or stores your biometric profiles or raw hardware keys on its cloud servers.\n\n",
+                                    "Optional security access controls—including Apple Face ID or Android Touch ID—are executed 100% locally on your physical device via the hardware's Secure Enclave layer. Axiom never captures, transmits, views, or stores your biometric profiles or raw hardware keys on its cloud servers.\n\n",
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -276,7 +276,7 @@ class _AuthGateState extends State<AuthGate> {
                             style: const TextStyle(height: 1.6),
                             children: [
                               const TextSpan(
-                                text: 'NEURAL CANVAS • TERMS OF SERVICE\n\n',
+                                text: 'AXIOM • TERMS OF SERVICE\n\n',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -293,7 +293,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'By creating an account and utilizing Neural Canvas, you agree to be bound by these operational terms. If you disagree, terminate usage immediately.\n\n',
+                                    'By creating an account and utilizing Axiom, you agree to be bound by these operational terms. If you disagree, terminate usage immediately.\n\n',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -309,7 +309,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'You are entirely responsible for content logged in your memory repository. You explicitly agree not to use Neural Canvas to systematically scrape, reverse-engineer, or bombard the underlying Google Gemini API layers via automated bots or malicious scripts.\n\n',
+                                    'You are entirely responsible for content logged in your memory repository. You explicitly agree not to use Axiom to systematically scrape, reverse-engineer, or bombard the underlying Google Gemini API layers via automated bots or malicious scripts.\n\n',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -326,7 +326,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'Neural Canvas is currently in a Public Beta phase. The service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles (currently 200 frames) to maintain network stability.\n\n',
+                                    'Axiom is currently in a Public Beta phase. The service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles (currently 200 frames) to maintain network stability.\n\n',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -342,7 +342,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'Neural Canvas, its founders, and developers shall not be held liable for any data interpretation anomalies, miscalculated calendar logs, or missing context memory blocks generated by the underlying large language model frameworks.',
+                                    'Axiom, its founders, and developers shall not be held liable for any data interpretation anomalies, miscalculated calendar logs, or missing context memory blocks generated by the underlying large language model frameworks.',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -493,7 +493,7 @@ class _AuthGateState extends State<AuthGate> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Neural Canvas',
+                    'Axiom',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -621,7 +621,7 @@ class _AuthGateState extends State<AuthGate> {
                                 ),
                                 const TextSpan(
                                   text:
-                                      '. I consent to my uploaded assets being securely processed via cloud AI models, and acknowledge that optional biometric device authentication is executed entirely locally on my device by the operating system and is never collected or stored by Neural Canvas.',
+                                      '. I consent to my uploaded assets being securely processed via cloud AI models, and acknowledge that optional biometric device authentication is executed entirely locally on my device by the operating system and is never collected or stored by Axiom.',
                                 ),
                               ],
                             ),

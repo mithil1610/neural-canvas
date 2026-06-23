@@ -480,20 +480,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     if (activeLoadingAction != null) return;
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
       builder: (BuildContext ctx) {
         return Container(
-          padding: const EdgeInsets.only(
+          padding: EdgeInsets.only(
             top: 24,
-            bottom: 40,
-            left: 16,
-            right: 16,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: const Color(0xFF111114),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
-              top: BorderSide(color: Colors.white.withOpacity(0.08)),
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
             ),
           ),
           child: Column(

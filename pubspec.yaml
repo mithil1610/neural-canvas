@@ -1,5 +1,5 @@
 name: neural_canvas
-description: "A new Flutter project."
+description: "Axiom is your intelligent, AI-powered Second Brain. Stop losing your best ideas to chaotic folders and forgotten camera rolls. Axiom ingests your thoughts, images, and voice notes, and automatically organizes them into a beautiful, searchable relational knowledge graph. Powered by advanced Large Language Models, Axiom doesn't just store your files—it understands them."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

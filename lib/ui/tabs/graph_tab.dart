@@ -48,7 +48,7 @@ class GraphTab extends StatelessWidget {
             .collection('users')
             .doc(user.uid)
             .collection('knowledge_base')
-            .orderBy('createdAt', descending: true)
+            .orderBy('uploadedAt', descending: true)
             .limit(40)
             .snapshots(),
         builder: (context, snapshot) {
@@ -210,8 +210,8 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
 
           // Safe Field Extraction Fallback
           String nodeLabel = "Untitled Node";
-          if (data.containsKey('title') && data['title'] != null) {
-            nodeLabel = data['title'];
+          if (data.containsKey('smartTitle') && data['smartTitle'] != null) {
+            nodeLabel = data['smartTitle'];
           } else if (data.containsKey('aiSummary') &&
               data['aiSummary'] != null) {
             String summary = data['aiSummary'];

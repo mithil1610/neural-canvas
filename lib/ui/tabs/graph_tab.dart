@@ -58,10 +58,56 @@ class GraphTab extends StatelessWidget {
 
           final assets = snapshot.data!.docs;
           if (assets.isEmpty) {
-            return const Center(
-              child: Text(
-                "Your Memory Graph is blank. Ingest text, scans, or voice files to spark connections.",
-                style: TextStyle(color: Colors.white54),
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Pulsing Neural Hub Icon Effect
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.deepPurple.withValues(alpha: 0.2),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.hub_outlined,
+                        size: 48,
+                        color: Colors.deepPurple.shade300,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Title text
+                    const Text(
+                      "Your Memory Graph is blank",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Subtitle message string
+                    Text(
+                      "Ingest text, scan, or voice files to spark connections.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey.shade400,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }

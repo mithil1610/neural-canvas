@@ -267,7 +267,7 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
             color: nodeColor,
             size: 48,
             connections: ['core'], // Connect back to core
-            description: data['summary'] ?? 'Neural memory connection.',
+            description: data['aiSummary'] ?? 'Neural memory connection.',
             position: computedPosition,
           );
         } catch (e) {

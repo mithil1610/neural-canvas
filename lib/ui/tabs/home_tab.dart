@@ -239,30 +239,36 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final summaryLower = aiSummary.toLowerCase();
     if (summaryLower.contains("receipt") ||
         summaryLower.contains("invoice") ||
-        summaryLower.contains("financial"))
+        summaryLower.contains("financial")) {
       return "Financial Records";
+    }
     if (summaryLower.contains("route") ||
         summaryLower.contains("run") ||
-        summaryLower.contains("workout"))
+        summaryLower.contains("workout")) {
       return "Fitness Highlights";
+    }
     if (summaryLower.contains("vacation") ||
         summaryLower.contains("trip") ||
-        summaryLower.contains("travel"))
+        summaryLower.contains("travel")) {
       return "Travel Memories";
+    }
     if (summaryLower.contains("design") ||
         summaryLower.contains("meeting") ||
-        summaryLower.contains("work"))
+        summaryLower.contains("work")) {
       return "Work Insights";
+    }
     if (summaryLower.contains("recipe") ||
         summaryLower.contains("cook") ||
-        summaryLower.contains("food"))
+        summaryLower.contains("food")) {
       return "Culinary Collection";
+    }
 
     // Extracted fileType fallback
     if (fallbackType == 'pdf' ||
         fallbackType == 'doc' ||
-        fallbackType == 'docx')
+        fallbackType == 'docx') {
       return "Document Insights";
+    }
     if (fallbackType == 'mp4' || fallbackType == 'mov') return "Video Timeline";
     if (fallbackType == 'mp3' || fallbackType == 'wav') return "Audio Captures";
 
@@ -573,11 +579,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       if (!isPremium) {
         final length = File(filePath).lengthSync();
         if (length > 5 * 1024 * 1024) {
-          if (mounted)
+          if (mounted) {
             UIUtils.showFloatingSnackBar(
               context,
               'Free tier is limited to 5MB files. Please optimize or upgrade to Infinite Brain.',
             );
+          }
           return;
         }
       }
@@ -626,10 +633,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           activeLoadingAction = null;
         });
+      }
     }
   }
 
@@ -691,10 +699,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Scan failed: $e');
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           activeLoadingAction = null;
         });
+      }
     }
   }
 
@@ -792,10 +801,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           'Voice note ingested!',
                         );
                       }
-                      if (mounted)
+                      if (mounted) {
                         setState(() {
                           activeLoadingAction = null;
                         });
+                      }
                     },
                     child: const Text('Stop & Save'),
                   ),
@@ -805,19 +815,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
         }
       } else {
-        if (mounted)
+        if (mounted) {
           UIUtils.showFloatingSnackBar(
             context,
             'Microphone permission denied.',
           );
+        }
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           activeLoadingAction = null;
         });
-      if (mounted)
+      }
+      if (mounted) {
         UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
+      }
     }
   }
 
@@ -825,6 +838,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!mounted) return;
 
     final TextEditingController textController = TextEditingController();
 
@@ -911,25 +925,28 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         'aiSummary': rawText,
                       });
 
-                      if (mounted)
+                      if (mounted) {
                         UIUtils.showFloatingSnackBar(
                           context,
                           'Text note ingested! Enhancing...',
                         );
+                      }
 
                       // Fire off background enhancement
                       _enhanceTextNode(docRef, rawText);
                     } catch (e) {
-                      if (mounted)
+                      if (mounted) {
                         UIUtils.showFloatingSnackBar(
                           context,
                           'Failed to save text: $e',
                         );
+                      }
                     } finally {
-                      if (mounted)
+                      if (mounted) {
                         setState(() {
                           activeLoadingAction = null;
                         });
+                      }
                     }
                   },
                   child: const Text(
@@ -1425,17 +1442,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     .orderBy('uploadedAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError)
+                  if (snapshot.hasError) {
                     return const SliverToBoxAdapter(
                       child: Center(child: Text('Error loading feed.')),
                     );
-                  if (!snapshot.hasData)
+                  }
+                  if (!snapshot.hasData) {
                     return const SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.all(40),
                         child: Center(child: CircularProgressIndicator()),
                       ),
                     );
+                  }
 
                   final allDocs = snapshot.data!.docs;
                   if (allDocs.isEmpty) {
@@ -1472,8 +1491,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       final d = ts.toDate();
                       final key =
                           "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-                      if (!groupAClusters.containsKey(key))
+                      if (!groupAClusters.containsKey(key)) {
                         groupAClusters[key] = [];
+                      }
                       groupAClusters[key]!.add(doc);
                     }
                   }
@@ -1605,8 +1625,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                             if (userDoc
                                                     .data()?['accountTier'] !=
                                                 'premium') {
-                                              if (context.mounted)
+                                              if (context.mounted) {
                                                 showBlurUpsellOverlay(context);
+                                              }
                                               return;
                                             }
                                             if (context.mounted) {
@@ -1672,8 +1693,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                             if (userDoc
                                                     .data()?['accountTier'] !=
                                                 'premium') {
-                                              if (context.mounted)
+                                              if (context.mounted) {
                                                 showBlurUpsellOverlay(context);
+                                              }
                                               return;
                                             }
                                             final filtered = items.where((doc) {
@@ -1684,8 +1706,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                                   data['fileType']
                                                       ?.toString() ??
                                                   '';
-                                              if (!type.startsWith('image'))
+                                              if (!type.startsWith('image')) {
                                                 return false;
+                                              }
                                               final summary =
                                                   data['aiSummary']
                                                       ?.toString()

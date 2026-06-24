@@ -37,7 +37,7 @@ class GraphTab extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return const Center(
-        child: Text("Please sign in to view your Memory Graph."),
+        child: Text("Diagnostic Error: No authenticated user found."),
       );
     }
 
@@ -52,12 +52,28 @@ class GraphTab extends StatelessWidget {
             .limit(40)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Firestore Error: ${snapshot.error.toString()}",
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final assets = snapshot.data!.docs;
-          if (assets.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -112,7 +128,7 @@ class GraphTab extends StatelessWidget {
             );
           }
 
-          return CustomGraphPainterWidget(liveAssets: assets);
+          return CustomGraphPainterWidget(liveAssets: snapshot.data!.docs);
         },
       ),
     );
@@ -186,72 +202,78 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
       currentAssetIds.add(doc.id);
 
       if (!_nodeMap.containsKey(doc.id)) {
-        final data = doc.data() as Map<String, dynamic>;
+        try {
+          final data = doc.data() as Map<String, dynamic>;
 
-        final String category =
-            (data['category'] as String?)?.toLowerCase() ?? 'documents';
+          final String category =
+              (data['category'] as String?)?.toLowerCase() ?? 'documents';
 
-        String title = data['smartTitle'] as String? ?? '';
-        if (title.trim().isEmpty) {
-          final aiSummary = data['aiSummary'] as String? ?? '';
-          final words = aiSummary
-              .split(RegExp(r'\s+'))
-              .where((s) => s.isNotEmpty)
-              .take(3)
-              .join(' ');
-          title = words.isNotEmpty ? words : 'Memory Node';
+          // Safe Field Extraction Fallback
+          String nodeLabel = "Untitled Node";
+          if (data.containsKey('title') && data['title'] != null) {
+            nodeLabel = data['title'];
+          } else if (data.containsKey('aiSummary') &&
+              data['aiSummary'] != null) {
+            String summary = data['aiSummary'];
+            nodeLabel = summary.length > 20
+                ? "${summary.substring(0, 20)}..."
+                : summary;
+          }
+
+          // Map category to styles
+          Color nodeColor = const Color(0xFF0EA5E9);
+          IconData nodeIcon = Icons.description_outlined;
+
+          switch (category) {
+            case 'health':
+              nodeColor = const Color(0xFF10B981);
+              nodeIcon = Icons.favorite_outline;
+              break;
+            case 'people':
+              nodeColor = const Color(0xFFEC4899);
+              nodeIcon = Icons.people_outline;
+              break;
+            case 'photos':
+              nodeColor = const Color(0xFF6366F1);
+              nodeIcon = Icons.photo_library_outlined;
+              break;
+            case 'work':
+              nodeColor = const Color(0xFFA78BFA);
+              nodeIcon = Icons.work_outline;
+              break;
+            case 'events':
+              nodeColor = const Color(0xFFF59E0B);
+              nodeIcon = Icons.calendar_today;
+              break;
+            case 'documents':
+            default:
+              nodeColor = const Color(0xFF0EA5E9);
+              nodeIcon = Icons.description_outlined;
+              break;
+          }
+
+          // Compute Golden Spiral Position
+          final double radius = 80.0 + (index * 15);
+          final double angle = index * 2.4;
+          final Offset computedPosition = Offset(
+            radius * math.cos(angle),
+            radius * math.sin(angle),
+          );
+
+          _nodeMap[doc.id] = GraphNode(
+            id: doc.id,
+            label: nodeLabel,
+            icon: nodeIcon,
+            color: nodeColor,
+            size: 48,
+            connections: ['core'], // Connect back to core
+            description: data['summary'] ?? 'Neural memory connection.',
+            position: computedPosition,
+          );
+        } catch (e) {
+          // If a specific document is corrupted, do not let it crash the whole screen layout
+          print("Error parsing document node: $e");
         }
-
-        // Map category to styles
-        Color nodeColor = const Color(0xFF0EA5E9);
-        IconData nodeIcon = Icons.description_outlined;
-
-        switch (category) {
-          case 'health':
-            nodeColor = const Color(0xFF10B981);
-            nodeIcon = Icons.favorite_outline;
-            break;
-          case 'people':
-            nodeColor = const Color(0xFFEC4899);
-            nodeIcon = Icons.people_outline;
-            break;
-          case 'photos':
-            nodeColor = const Color(0xFF6366F1);
-            nodeIcon = Icons.photo_library_outlined;
-            break;
-          case 'work':
-            nodeColor = const Color(0xFFA78BFA);
-            nodeIcon = Icons.work_outline;
-            break;
-          case 'events':
-            nodeColor = const Color(0xFFF59E0B);
-            nodeIcon = Icons.calendar_today;
-            break;
-          case 'documents':
-          default:
-            nodeColor = const Color(0xFF0EA5E9);
-            nodeIcon = Icons.description_outlined;
-            break;
-        }
-
-        // Compute Golden Spiral Position
-        final double radius = 80.0 + (index * 15);
-        final double angle = index * 2.4;
-        final Offset computedPosition = Offset(
-          radius * math.cos(angle),
-          radius * math.sin(angle),
-        );
-
-        _nodeMap[doc.id] = GraphNode(
-          id: doc.id,
-          label: title,
-          icon: nodeIcon,
-          color: nodeColor,
-          size: 48,
-          connections: ['core'], // Connect back to core
-          description: data['summary'] ?? 'Neural memory connection.',
-          position: computedPosition,
-        );
       }
       index++;
     }

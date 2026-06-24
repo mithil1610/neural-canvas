@@ -47,7 +47,7 @@ class GraphTab extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
-            .collection('assets')
+            .collection('knowledge_base')
             .orderBy('createdAt', descending: true)
             .limit(40)
             .snapshots(),
@@ -157,7 +157,9 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
   @override
   void didUpdateWidget(CustomGraphPainterWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncNodes(widget.liveAssets);
+    setState(() {
+      _syncNodes(widget.liveAssets);
+    });
   }
 
   void _syncNodes(List<QueryDocumentSnapshot> assets) {
@@ -188,7 +190,17 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
 
         final String category =
             (data['category'] as String?)?.toLowerCase() ?? 'documents';
-        final String title = data['smartTitle'] ?? 'Memory Node';
+
+        String title = data['smartTitle'] as String? ?? '';
+        if (title.trim().isEmpty) {
+          final aiSummary = data['aiSummary'] as String? ?? '';
+          final words = aiSummary
+              .split(RegExp(r'\s+'))
+              .where((s) => s.isNotEmpty)
+              .take(3)
+              .join(' ');
+          title = words.isNotEmpty ? words : 'Memory Node';
+        }
 
         // Map category to styles
         Color nodeColor = const Color(0xFF0EA5E9);
@@ -280,34 +292,37 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
     return Stack(
       children: [
         // --- Interactive Graph Canvas ---
-        GestureDetector(
-          onPanUpdate: (details) {
-            setState(() => _panOffset += details.delta);
-          },
-          onDoubleTap: () {
-            setState(() {
-              _panOffset = Offset.zero;
-              _selectedNodeId = null;
-            });
-          },
-          child: AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, child) {
-              return CustomPaint(
-                size: Size.infinite,
-                painter: _GraphEdgePainter(
-                  nodes: nodesList,
-                  panOffset: _panOffset,
-                  screenCenter: Offset(
-                    MediaQuery.of(context).size.width / 2,
-                    MediaQuery.of(context).size.height / 2 - 40,
-                  ),
-                  pulseValue: _pulseAnimation.value,
-                  selectedNodeId: _selectedNodeId,
-                ),
-                child: child,
-              );
+        Positioned.fill(
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              setState(() => _panOffset += details.delta);
             },
+            onDoubleTap: () {
+              setState(() {
+                _panOffset = Offset.zero;
+                _selectedNodeId = null;
+              });
+            },
+            child: AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                return SizedBox.expand(
+                  child: CustomPaint(
+                    painter: _GraphEdgePainter(
+                      nodes: nodesList,
+                      panOffset: _panOffset,
+                      screenCenter: Offset(
+                        MediaQuery.of(context).size.width / 2,
+                        MediaQuery.of(context).size.height / 2 - 40,
+                      ),
+                      pulseValue: _pulseAnimation.value,
+                      selectedNodeId: _selectedNodeId,
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+            ),
           ),
         ),
 

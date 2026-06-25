@@ -23,6 +23,10 @@ import 'dart:ui';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
 
+class MainRouter {
+  static bool bypassBiometricsOnce = false;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -99,7 +103,13 @@ class _MainShellState extends State<MainShell> {
     // Begin listening for shared files the absolute second the app boots up
     ShareReceiverService().initialize(navigatorKey);
     globalTabController.addListener(_onTabChanged);
-    _authenticateBiometrics();
+
+    if (MainRouter.bypassBiometricsOnce) {
+      MainRouter.bypassBiometricsOnce = false;
+      _navigateToHome();
+    } else {
+      _authenticateBiometrics();
+    }
   }
 
   void _navigateToHome() {

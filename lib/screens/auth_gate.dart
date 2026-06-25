@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
-import 'package:neural_canvas/main.dart' show MainShell;
+import 'package:neural_canvas/main.dart' show MainShell, MainRouter;
 import '../utils/ui_utils.dart';
 
 class AuthGate extends StatefulWidget {
@@ -415,6 +415,7 @@ class _AuthGateState extends State<AuthGate> {
 
       // Verify and create the base user profile document
       if (userCredential.user != null) {
+        MainRouter.bypassBiometricsOnce = true;
         if (!_isLogin) {
           await userCredential.user!.updateDisplayName(
             _nameController.text.trim(),

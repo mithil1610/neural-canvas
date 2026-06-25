@@ -547,6 +547,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
   Future<void> _processImport({required String source}) async {
     if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!mounted) return;
+    if (!await AuthService.checkDailyUploadQuota(context)) return;
     try {
       String? filePath;
       String? fileName;
@@ -625,6 +627,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         'aiSummary': 'Processing data...',
       });
 
+      await AuthService.incrementDailyUploadQuota();
+
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
@@ -643,6 +647,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
   Future<void> _handleScan() async {
     if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!mounted) return;
+    if (!await AuthService.checkDailyUploadQuota(context)) return;
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -691,6 +697,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         'aiSummary': 'Processing image data...',
       });
 
+      await AuthService.incrementDailyUploadQuota();
+
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
       if (mounted) {
@@ -711,6 +719,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!mounted) return;
+    if (!await AuthService.checkDailyUploadQuota(context)) return;
+    if (!mounted) return;
 
     try {
       if (await _audioRecorder.hasPermission()) {
@@ -789,6 +800,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           'aiSummary': 'Transcribing audio...',
                         });
 
+                        await AuthService.incrementDailyUploadQuota();
+
                         AssetAnalyzerService.analyzeIngestedAsset(
                           docRef.id,
                           mediaUrl,
@@ -838,6 +851,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!mounted) return;
+    if (!await AuthService.checkDailyUploadQuota(context)) return;
     if (!mounted) return;
 
     final TextEditingController textController = TextEditingController();
@@ -924,6 +939,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         'uploadedAt': FieldValue.serverTimestamp(),
                         'aiSummary': rawText,
                       });
+
+                      await AuthService.incrementDailyUploadQuota();
 
                       if (mounted) {
                         UIUtils.showFloatingSnackBar(

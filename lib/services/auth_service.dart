@@ -75,4 +75,90 @@ class AuthService {
       return false;
     }
   }
+
+  static Future<bool> checkDailyUploadQuota(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    final uid = user.uid;
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final data = userDoc.data() ?? {};
+      final String accountTier = data['tier'] ?? data['accountTier'] ?? 'free';
+      int dailyUploadCount = data['dailyUploadCount'] ?? 0;
+      final String lastUploadDate = data['lastUploadDate'] ?? '';
+
+      final String todayDate = DateTime.now().toIso8601String().split('T')[0];
+
+      if (lastUploadDate != todayDate) {
+        dailyUploadCount = 0;
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'dailyUploadCount': 0,
+          'lastUploadDate': todayDate,
+        });
+      }
+
+      if (accountTier == 'free' && dailyUploadCount >= 10) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) {
+              return BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: AlertDialog(
+                  backgroundColor: Theme.of(
+                    ctx,
+                  ).colorScheme.surface.withValues(alpha: 0.8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      width: 1,
+                    ),
+                  ),
+                  title: const Text(
+                    'Daily Upload Limit Reached',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  content: const Text(
+                    "Please upgrade to Axiom Premium to unlock unlimited neural storage processing.",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text(
+                        'Understood',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+        return false;
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint("Error checking daily quota: $e");
+      return false;
+    }
+  }
+
+  static Future<void> incrementDailyUploadQuota() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'dailyUploadCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint("Error incrementing daily quota: $e");
+    }
+  }
 }

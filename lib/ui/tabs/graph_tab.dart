@@ -30,8 +30,44 @@ class GraphNode {
 
 // --- Main Tab ---
 
-class GraphTab extends StatelessWidget {
+class GraphTab extends StatefulWidget {
   const GraphTab({super.key});
+
+  @override
+  State<GraphTab> createState() => _GraphTabState();
+}
+
+class _GraphTabState extends State<GraphTab> {
+  String _selectedCategory = 'all';
+  final List<String> _categories = [
+    'All',
+    'Documents',
+    'Health',
+    'People',
+    'Photos',
+    'Work',
+    'Events',
+  ];
+
+  Stream<QuerySnapshot> _buildQueryStream(String uid) {
+    var collection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('knowledge_base');
+
+    if (_selectedCategory == 'all') {
+      return collection
+          .orderBy('uploadedAt', descending: true)
+          .limit(40)
+          .snapshots();
+    } else {
+      return collection
+          .where("category", isEqualTo: _selectedCategory)
+          .orderBy('uploadedAt', descending: true)
+          .limit(40)
+          .snapshots();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,93 +80,133 @@ class GraphTab extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('knowledge_base')
-            .orderBy('uploadedAt', descending: true)
-            .limit(40)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Firestore Error: ${snapshot.error.toString()}",
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: 16.0,
+                left: 16.0,
+                right: 16.0,
+                bottom: 8.0,
               ),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Pulsing Neural Hub Icon Effect
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.deepPurple.withValues(alpha: 0.2),
-                          width: 2,
-                        ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _categories.map((category) {
+                    final isSelected =
+                        category.toLowerCase() == _selectedCategory;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(category),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedCategory = selected
+                                ? category.toLowerCase()
+                                : "all";
+                          });
+                        },
                       ),
-                      child: Icon(
-                        Icons.hub_outlined,
-                        size: 48,
-                        color: Colors.deepPurple.shade300,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Title text
-                    const Text(
-                      "Your Memory Graph is blank",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Subtitle message string
-                    Text(
-                      "Ingest text, scan, or voice files to spark connections.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.grey.shade400,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
               ),
-            );
-          }
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _buildQueryStream(user.uid),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Firestore Error: ${snapshot.error.toString()}",
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          return CustomGraphPainterWidget(liveAssets: snapshot.data!.docs);
-        },
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Pulsing Neural Hub Icon Effect
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.deepPurple.withValues(alpha: 0.2),
+                                width: 2,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.hub_outlined,
+                              size: 48,
+                              color: Colors.deepPurple.shade300,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          // Title text
+                          const Text(
+                            "Your Memory Graph is blank",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Subtitle message string
+                          Text(
+                            "Ingest text, scan, or voice files to spark connections.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.grey.shade400,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return CustomGraphPainterWidget(
+                  liveAssets: snapshot.data!.docs,
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

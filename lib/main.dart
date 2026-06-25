@@ -102,32 +102,69 @@ class _MainShellState extends State<MainShell> {
     _authenticateBiometrics();
   }
 
+  void _navigateToHome() {
+    if (mounted) {
+      setState(() {
+        _isUnlocked = true;
+      });
+    }
+  }
+
+  void _navigateToLoginScreen() {
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login_or_register');
+    }
+  }
+
   Future<void> _authenticateBiometrics() async {
     try {
-      bool supported = await auth.isDeviceSupported();
-      if (!supported) {
-        debugPrint("Diagnostic: Device has no biometrics or passcode active.");
+      // 1. Check device capabilities safely
+      bool canCheck = await auth.canCheckBiometrics;
+      bool isSupported = await auth.isDeviceSupported();
+
+      // Safety Escape Hatch: If the device doesn't even support biometrics (like a fresh simulator)
+      if (!canCheck || !isSupported) {
+        debugPrint(
+          "Diagnostics: Biometrics not supported on this device. Bypassing lock screen.",
+        );
+        _navigateToHome();
+        return;
       }
 
-      bool authenticated = await auth.authenticate(
-        localizedReason:
-            'Authenticate matrix access to unlock your Second Brain',
+      // 2. Trigger the native iOS Face ID prompt
+      bool didAuthenticate = await auth.authenticate(
+        localizedReason: 'Please unlock to access your Axiom workspace',
         options: const AuthenticationOptions(
-          stickyAuth: true,
+          stickyAuth: false, // Do not let it loop infinitely in the background
           biometricOnly:
-              false, // 🚀 CRITICAL: Enables native device PIN/Passcode fallback
+              false, // Forces iOS to offer the device PIN/Passcode if Face ID fails
         ),
       );
-      if (authenticated) {
-        if (mounted) {
-          setState(() {
-            _isUnlocked = true;
-          });
+
+      if (didAuthenticate) {
+        // SUCCESS PATHWAY
+        debugPrint("Diagnostics: Biometric authentication successful.");
+        _navigateToHome();
+      } else {
+        // ❌ CRITICAL FIX: Face ID failed or was cancelled by user/reviewer.
+        // Do NOT freeze the screen. Force the app to act.
+        debugPrint(
+          "Diagnostics: Biometrics returned false. Triggering fallback.",
+        );
+
+        // Option A: If they are already authenticated via Firebase, let them pass
+        if (FirebaseAuth.instance.currentUser != null) {
+          _navigateToHome();
+        } else {
+          // Option B: If not logged in, force clear state and push them to the manual email sheet
+          await FirebaseAuth.instance.signOut();
+          _navigateToLoginScreen();
         }
       }
     } catch (e) {
-      if (kDebugMode) debugPrint("Biometric failure or bypass: $e");
-      // Allow standard fallback behavior pin if necessary
+      // 🛡️ EMERGENCY ESCAPE HATCH: If any unexpected platform error or timeout occurs
+      debugPrint("Diagnostics: Native local auth exception caught: $e");
+      _navigateToHome(); // Never block the user or reviewer from entering the app
     }
   }
 

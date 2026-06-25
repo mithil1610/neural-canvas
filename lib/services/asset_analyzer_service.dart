@@ -23,10 +23,11 @@ class AssetAnalyzerService {
     }
 
     if (_geminiApiKey.isEmpty) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           "AssetAnalyzer: GEMINI_API_KEY is missing. Cannot perform AI analysis.",
         );
+      }
       await _updateSummaryAndTitle(
         docId,
         "AI Analysis unavailable (Missing API Key)",
@@ -122,10 +123,11 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
         titleToSave,
         categoryToSave,
       );
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           "AssetAnalyzer: Successfully generated summary and title for $docId",
         );
+      }
 
       // Secondary pass for Chronos Lens Event Extractor
       await extractEvents(docId, summaryToSave);
@@ -253,16 +255,18 @@ Text: $summaryText
                   );
                 }
               } catch (e) {
-                if (kDebugMode)
+                if (kDebugMode) {
                   debugPrint("Failed to parse event time for notification: $e");
+                }
               }
             }
           }
           await batch.commit();
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint(
               "AssetAnalyzer: Successfully extracted \${events.length} events for $docId",
             );
+          }
         }
       }
     } catch (e) {

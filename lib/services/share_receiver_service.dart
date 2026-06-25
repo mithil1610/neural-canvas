@@ -29,8 +29,9 @@ class ShareReceiverService {
             _processSharedFiles(value, navigatorKey);
           },
           onError: (err) {
-            if (kDebugMode)
+            if (kDebugMode) {
               debugPrint("ReceiveSharingIntent MediaStream Error: $err");
+            }
           },
         );
 
@@ -114,8 +115,9 @@ class ShareReceiverService {
         // Fire the asynchronous analyzer immediately
         AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint("Share intent upload completed for $fileName");
+        }
       } catch (e) {
         if (kDebugMode) debugPrint("Error analyzing shared asset: $e");
       }

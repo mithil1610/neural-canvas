@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -272,7 +273,7 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
           );
         } catch (e) {
           // If a specific document is corrupted, do not let it crash the whole screen layout
-          print("Error parsing document node: $e");
+          if (kDebugMode) debugPrint("Error parsing document node: $e");
         }
       }
       index++;

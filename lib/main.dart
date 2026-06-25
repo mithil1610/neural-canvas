@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -103,18 +104,26 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _authenticateBiometrics() async {
     try {
+      bool supported = await auth.isDeviceSupported();
+      if (!supported) {
+        debugPrint("Diagnostic: Device has no biometrics or passcode active.");
+      }
+
       bool authenticated = await auth.authenticate(
         localizedReason:
             'Authenticate matrix access to unlock your Second Brain',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly:
+              false, // 🚀 CRITICAL: Enables native device PIN/Passcode fallback
         ),
       );
       if (authenticated) {
-        setState(() {
-          _isUnlocked = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isUnlocked = true;
+          });
+        }
       }
     } catch (e) {
       if (kDebugMode) debugPrint("Biometric failure or bypass: $e");
@@ -198,6 +207,24 @@ class _MainShellState extends State<MainShell> {
                           context,
                         ).colorScheme.primary.withValues(alpha: 0.2),
                         foregroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                        if (context.mounted) {
+                          Navigator.of(
+                            context,
+                          ).pushReplacementNamed('/login_or_register');
+                        }
+                      },
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Log in with App Account'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

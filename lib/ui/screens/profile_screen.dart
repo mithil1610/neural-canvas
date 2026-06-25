@@ -220,6 +220,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Step D: Permanently delete auth credentials
       try {
         await user.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          if (mounted) {
+            UIUtils.showFloatingSnackBar(
+              context,
+              'Security requirement: Please log in again to delete your account.',
+            );
+          }
+          await FirebaseAuth.instance.signOut();
+        } else {
+          if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
+          await FirebaseAuth.instance.signOut();
+        }
       } catch (e) {
         if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
         await FirebaseAuth.instance.signOut();
@@ -489,11 +502,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  TextButton(
+                  TextButton.icon(
                     onPressed: _isSaving ? null : _deleteAccount,
-                    child: const Text(
+                    icon: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    label: const Text(
                       'Delete Account & Purge Vault',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],

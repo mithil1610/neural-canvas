@@ -154,9 +154,9 @@ class AuthService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'dailyUploadCount': FieldValue.increment(1),
-      });
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'dailyUploadCount': FieldValue.increment(1)},
+      );
     } catch (e) {
       if (kDebugMode) debugPrint("Error incrementing daily quota: $e");
     }

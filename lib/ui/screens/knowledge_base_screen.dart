@@ -1,13 +1,14 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/services.dart';
 import '../../utils/ui_utils.dart';
+import '../../services/ai_service.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -23,12 +24,25 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   bool _isSearching = false;
   bool _isSemanticSearchActive = false;
   List<String> _matchedDocIds = [];
-  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  double _cosineSimilarity(List<double> a, List<double> b) {
+    if (a.length != b.length) return 0.0;
+    double dotProduct = 0.0;
+    double normA = 0.0;
+    double normB = 0.0;
+    for (int i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    if (normA == 0 || normB == 0) return 0.0;
+    return dotProduct / (math.sqrt(normA) * math.sqrt(normB));
   }
 
   Future<void> _performSemanticSearch(String query) async {
@@ -49,39 +63,67 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     if (user == null) return;
 
     try {
-      final snapshot = await FirebaseFirestore.instance
+      // 1. Get the 768-dimension embedding vector array for the user's plain-text query
+      List<double> queryVector = await AiService().getQueryEmbedding(query);
+
+      if (queryVector.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isSearching = false;
+            _isSemanticSearchActive = false;
+          });
+          UIUtils.showFloatingSnackBar(
+            context,
+            'Semantic search engine unavailable.',
+          );
+        }
+        return;
+      }
+
+      // 2. Query Firestore and calculate nearest embeddings using cosine similarity
+      // (Fallback for Flutter SDK since findNearest is not natively on CollectionReference yet)
+      final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('knowledge_base')
           .get();
 
-      String allAssetSummaries = snapshot.docs
-          .map((d) {
-            final data = d.data();
-            final fileName = data['fileName'] ?? 'Untitled';
-            final smartTitle = data['smartTitle'] ?? fileName;
-            return "ID: ${d.id} | Asset: $smartTitle | Summary: ${data['aiSummary']}";
-          })
-          .join('\n');
+      List<Map<String, dynamic>> results = [];
 
-      final systemInstruction =
-          "You are the Axiom Semantic Search Router. Look at this index list of the user's personal knowledge documents: [INDEX: $allAssetSummaries]. The user is searching their digital brain for: '$query'. Identify and return ONLY a comma-separated list of the exact Firestore document IDs that match the semantic intent of this search. Return nothing else. No markdown, no intro.";
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        if (data.containsKey('embedding')) {
+          final embeddingDynamic = data['embedding'];
+          List<double> docVector = [];
 
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: _geminiApiKey,
+          try {
+            if (embeddingDynamic is Iterable) {
+              docVector = embeddingDynamic
+                  .map((e) => (e as num).toDouble())
+                  .toList();
+            } else {
+              // Handle VectorValue dynamic fallback
+              final dynamicVector = embeddingDynamic as dynamic;
+              docVector = (dynamicVector.toArray() as List)
+                  .map((e) => (e as num).toDouble())
+                  .toList();
+            }
+          } catch (e) {
+            // Ignore corrupted vectors
+          }
+
+          if (docVector.isNotEmpty) {
+            final score = _cosineSimilarity(queryVector, docVector);
+            results.add({'id': doc.id, 'score': score});
+          }
+        }
+      }
+
+      results.sort(
+        (a, b) => (b['score'] as double).compareTo(a['score'] as double),
       );
 
-      final response = await model.generateContent([
-        Content.text(systemInstruction),
-      ]);
-
-      final text = response.text ?? '';
-      final matchedIds = text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
+      final matchedIds = results.take(5).map((r) => r['id'] as String).toList();
 
       if (mounted) {
         setState(() {
@@ -548,21 +590,28 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 ),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (value) => setState(() {}),
-                  onSubmitted: (value) => _performSemanticSearch(value),
-                  style: const TextStyle(fontSize: 16),
+                  style: const TextStyle(color: Colors.white),
+                  onSubmitted: _performSemanticSearch,
                   decoration: InputDecoration(
-                    hintText: 'Search your assets...',
+                    hintText: "Search your second brain contextually...",
                     hintStyle: TextStyle(
                       color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                      fontSize: 15,
                     ),
                     prefixIcon: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Icon(Icons.search, size: 22, color: cs.primary),
                     ),
                     prefixIconConstraints: const BoxConstraints(minWidth: 40),
-                    suffixIcon: _searchController.text.isNotEmpty
+                    suffixIcon: _isSearching
+                        ? Container(
+                            width: 24,
+                            height: 24,
+                            padding: const EdgeInsets.all(12),
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : _searchController.text.isNotEmpty
                         ? IconButton(
                             icon: Icon(
                               Icons.close,
@@ -572,10 +621,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             onPressed: () {
                               HapticFeedback.lightImpact();
                               _searchController.clear();
-                              setState(() {
-                                _isSemanticSearchActive = false;
-                                _matchedDocIds = [];
-                              });
+                              _performSemanticSearch('');
                             },
                           )
                         : Padding(

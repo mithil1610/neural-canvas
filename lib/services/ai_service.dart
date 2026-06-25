@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 
 class AiService {
@@ -171,6 +172,24 @@ class AiService {
     } catch (e) {
       if (kDebugMode) debugPrint("Error loading session: $e");
       clearHistory();
+    }
+  }
+
+  Future<List<double>> getQueryEmbedding(String query) async {
+    const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (geminiApiKey.isEmpty) return [];
+
+    try {
+      final model = GenerativeModel(
+        model: 'text-embedding-004',
+        apiKey: geminiApiKey,
+      );
+
+      final response = await model.embedContent(Content.text(query));
+      return response.embedding.values;
+    } catch (e) {
+      if (kDebugMode) debugPrint("Error getting embedding: $e");
+      return [];
     }
   }
 }

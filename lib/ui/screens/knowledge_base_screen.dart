@@ -1,14 +1,14 @@
 import 'dart:ui';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/services.dart';
 import '../../utils/ui_utils.dart';
-import '../../services/ai_service.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -31,18 +31,30 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     super.dispose();
   }
 
-  double _cosineSimilarity(List<double> a, List<double> b) {
-    if (a.length != b.length) return 0.0;
-    double dotProduct = 0.0;
-    double normA = 0.0;
-    double normB = 0.0;
-    for (int i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+  Future<List<Map<String, dynamic>>> executeSemanticMemoryQuery(
+    String plainTextQuery,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return [];
+
+      // Invoke your secure cloud function passing the user's plain-text input string
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('ext-firestore-vector-search-query')
+          .call({'query': plainTextQuery, 'limit': 5});
+
+      // Parse the returned document nodes matching closest proximity configurations
+      final List<dynamic> matchedDocs =
+          (result.data as Map<dynamic, dynamic>)['hits'] ?? [];
+      return matchedDocs
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("Telemetry Exception running vector search matching: $e");
+      }
+      return [];
     }
-    if (normA == 0 || normB == 0) return 0.0;
-    return dotProduct / (math.sqrt(normA) * math.sqrt(normB));
   }
 
   Future<void> _performSemanticSearch(String query) async {
@@ -59,71 +71,23 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
       _isSemanticSearchActive = true;
     });
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     try {
-      // 1. Get the 768-dimension embedding vector array for the user's plain-text query
-      List<double> queryVector = await AiService().getQueryEmbedding(query);
+      final List<Map<String, dynamic>> matchedDocs =
+          await executeSemanticMemoryQuery(query);
 
-      if (queryVector.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _isSearching = false;
-            _isSemanticSearchActive = false;
-          });
-          UIUtils.showFloatingSnackBar(
-            context,
-            'Semantic search engine unavailable.',
-          );
-        }
-        return;
-      }
-
-      // 2. Query Firestore and calculate nearest embeddings using cosine similarity
-      // (Fallback for Flutter SDK since findNearest is not natively on CollectionReference yet)
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('knowledge_base')
-          .get();
-
-      List<Map<String, dynamic>> results = [];
-
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data();
-        if (data.containsKey('embedding')) {
-          final embeddingDynamic = data['embedding'];
-          List<double> docVector = [];
-
-          try {
-            if (embeddingDynamic is Iterable) {
-              docVector = embeddingDynamic
-                  .map((e) => (e as num).toDouble())
-                  .toList();
-            } else {
-              // Handle VectorValue dynamic fallback
-              final dynamicVector = embeddingDynamic as dynamic;
-              docVector = (dynamicVector.toArray() as List)
-                  .map((e) => (e as num).toDouble())
-                  .toList();
+      // Map returned document snapshots directly to ID array for StreamBuilder rendering
+      final matchedIds = matchedDocs
+          .map((doc) {
+            if (doc['id'] != null) {
+              return doc['id'].toString();
             }
-          } catch (e) {
-            // Ignore corrupted vectors
-          }
-
-          if (docVector.isNotEmpty) {
-            final score = _cosineSimilarity(queryVector, docVector);
-            results.add({'id': doc.id, 'score': score});
-          }
-        }
-      }
-
-      results.sort(
-        (a, b) => (b['score'] as double).compareTo(a['score'] as double),
-      );
-
-      final matchedIds = results.take(5).map((r) => r['id'] as String).toList();
+            if (doc['path'] != null) {
+              return doc['path'].toString().split('/').last;
+            }
+            return '';
+          })
+          .where((id) => id.isNotEmpty)
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -593,7 +557,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                   style: const TextStyle(color: Colors.white),
                   onSubmitted: _performSemanticSearch,
                   decoration: InputDecoration(
-                    hintText: "Search your second brain contextually...",
+                    hintText: "Ask your second brain contextually...",
                     hintStyle: TextStyle(
                       color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
@@ -885,6 +849,17 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                                               ),
                                             ),
                                           ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            aiSummary,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: cs.onSurfaceVariant
+                                                  .withValues(alpha: 0.8),
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ],
                                       ),
                                     ),

@@ -87,21 +87,21 @@ class AuthService {
           .doc(uid)
           .get();
       final data = userDoc.data() ?? {};
-      final String accountTier = data['tier'] ?? data['accountTier'] ?? 'free';
-      int dailyUploadCount = data['dailyUploadCount'] ?? 0;
+      final String accountTier = data['accountTier'] ?? 'free';
+      int aiUsageCount = data['aiUsageCount'] ?? 0;
       final String lastUploadDate = data['lastUploadDate'] ?? '';
 
       final String todayDate = DateTime.now().toIso8601String().split('T')[0];
 
       if (lastUploadDate != todayDate) {
-        dailyUploadCount = 0;
+        aiUsageCount = 0;
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
-          'dailyUploadCount': 0,
+          'aiUsageCount': 0,
           'lastUploadDate': todayDate,
         });
       }
 
-      if (accountTier == 'free' && dailyUploadCount >= 10) {
+      if (accountTier == 'free' && aiUsageCount >= 10) {
         if (context.mounted) {
           showDialog(
             context: context,
@@ -155,7 +155,7 @@ class AuthService {
     if (user == null) return;
     try {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'dailyUploadCount': FieldValue.increment(1)},
+        {'aiUsageCount': FieldValue.increment(1)},
       );
     } catch (e) {
       if (kDebugMode) debugPrint("Error incrementing daily quota: $e");

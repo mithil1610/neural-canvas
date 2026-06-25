@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 // --- Data Models ---
 
@@ -347,9 +349,15 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
             description: data['aiSummary'] ?? 'Neural memory connection.',
             position: computedPosition,
           );
-        } catch (e) {
+        } catch (e, stackTrace) {
           // If a specific document is corrupted, do not let it crash the whole screen layout
           if (kDebugMode) debugPrint("Error parsing document node: $e");
+          FirebaseCrashlytics.instance.recordError(
+            e,
+            stackTrace,
+            reason:
+                'Silent corruption caught during document graph parsing loop',
+          );
         }
       }
       index++;
@@ -519,8 +527,16 @@ class _CustomGraphPainterWidgetState extends State<CustomGraphPainterWidget>
       left: pos.dx - node.size / 2,
       top: pos.dy - node.size / 2,
       child: GestureDetector(
-        onTap: () =>
-            setState(() => _selectedNodeId = isSelected ? null : node.id),
+        onTap: () {
+          setState(() => _selectedNodeId = isSelected ? null : node.id);
+          FirebaseAnalytics.instance.logEvent(
+            name: 'graph_node_interacted',
+            parameters: {
+              'node_id': node.id,
+              'node_category': node.color.toString(),
+            },
+          );
+        },
         onPanUpdate: (details) {
           setState(() {
             // Keep local state updated so graph doesn't jump

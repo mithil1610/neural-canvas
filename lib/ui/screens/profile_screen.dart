@@ -205,8 +205,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await doc.reference.delete();
           }
         } catch (e) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint("Firestore sub-collection $coll delete error: $e");
+          }
         }
       }
 

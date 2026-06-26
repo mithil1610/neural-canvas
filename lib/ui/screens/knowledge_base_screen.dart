@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,11 +17,8 @@ class KnowledgeBaseScreen extends StatefulWidget {
 
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedFilter =
-      'All'; // Filters: All, Documents, Images, Audio, Video
-  bool _isSearching = false;
-  bool _isSemanticSearchActive = false;
-  List<String> _matchedDocIds = [];
+  // Search and filter variables
+  String _selectedFilter = 'All';
 
   @override
   void dispose() {
@@ -31,79 +26,8 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     super.dispose();
   }
 
-  Future<List<Map<String, dynamic>>> executeSemanticMemoryQuery(
-    String plainTextQuery,
-  ) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return [];
-
-      // Invoke your secure cloud function passing the user's plain-text input string
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('ext-firestore-vector-search-query')
-          .call({'query': plainTextQuery, 'limit': 5});
-
-      // Parse the returned document nodes matching closest proximity configurations
-      final List<dynamic> matchedDocs =
-          (result.data as Map<dynamic, dynamic>)['hits'] ?? [];
-      return matchedDocs
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint("Telemetry Exception running vector search matching: $e");
-      }
-      return [];
-    }
-  }
-
-  Future<void> _performSemanticSearch(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _isSemanticSearchActive = false;
-        _matchedDocIds = [];
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _isSemanticSearchActive = true;
-    });
-
-    try {
-      final List<Map<String, dynamic>> matchedDocs =
-          await executeSemanticMemoryQuery(query);
-
-      // Map returned document snapshots directly to ID array for StreamBuilder rendering
-      final matchedIds = matchedDocs
-          .map((doc) {
-            if (doc['id'] != null) {
-              return doc['id'].toString();
-            }
-            if (doc['path'] != null) {
-              return doc['path'].toString().split('/').last;
-            }
-            return '';
-          })
-          .where((id) => id.isNotEmpty)
-          .toList();
-
-      if (mounted) {
-        setState(() {
-          _matchedDocIds = matchedIds;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-          _isSemanticSearchActive = false;
-        });
-        UIUtils.showFloatingSnackBar(context, 'Semantic search failed: $e');
-      }
-    }
+  void _performSearch(String query) {
+    setState(() {});
   }
 
   Widget _buildFileIcon(String fileType, String fileUrl, {double size = 48}) {
@@ -555,9 +479,10 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 child: TextField(
                   controller: _searchController,
                   style: const TextStyle(color: Colors.white),
-                  onSubmitted: _performSemanticSearch,
+                  onSubmitted: _performSearch,
+                  onChanged: _performSearch,
                   decoration: InputDecoration(
-                    hintText: "Ask your second brain contextually...",
+                    hintText: "Search your library...",
                     hintStyle: TextStyle(
                       color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
@@ -566,16 +491,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       child: Icon(Icons.search, size: 22, color: cs.primary),
                     ),
                     prefixIconConstraints: const BoxConstraints(minWidth: 40),
-                    suffixIcon: _isSearching
-                        ? Container(
-                            width: 24,
-                            height: 24,
-                            padding: const EdgeInsets.all(12),
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : _searchController.text.isNotEmpty
+                    suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
                             icon: Icon(
                               Icons.close,
@@ -585,7 +501,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                             onPressed: () {
                               HapticFeedback.lightImpact();
                               _searchController.clear();
-                              _performSemanticSearch('');
+                              _performSearch('');
                             },
                           )
                         : Padding(
@@ -602,20 +518,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                 ),
               ),
             ),
-            if (_isSearching)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 8,
-                ),
-                child: LinearProgressIndicator(
-                  backgroundColor: Colors.transparent,
-                  color: cs.primary.withValues(alpha: 0.5),
-                  minHeight: 2,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            if (!_isSearching) const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Filter Chips Row
             SizedBox(
@@ -708,8 +611,16 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                     if (!chipMatches) return false;
 
                     // Search filter
-                    if (_isSemanticSearchActive) {
-                      return _matchedDocIds.contains(doc.id);
+                    final queryText = _searchController.text.trim().toLowerCase();
+                    if (queryText.isNotEmpty) {
+                      final title = (data['smartTitle'] ?? '').toString().toLowerCase();
+                      final fileName = (data['fileName'] ?? '').toString().toLowerCase();
+                      final summary = (data['aiSummary'] ?? '').toString().toLowerCase();
+                      if (!title.contains(queryText) &&
+                          !fileName.contains(queryText) &&
+                          !summary.contains(queryText)) {
+                        return false;
+                      }
                     }
                     return true;
                   }).toList();

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,6 +8,8 @@ import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../utils/ui_utils.dart';
@@ -654,6 +655,66 @@ class _ChatTabState extends State<ChatTab> {
     );
   }
 
+  List<InlineSpan> _parseTextWithLinks(String text, Color defaultColor) {
+    final regex = RegExp(r"(https?:\/\/\S+)");
+    final matches = regex.allMatches(text);
+    if (matches.isEmpty) {
+      return [
+        TextSpan(
+          text: text,
+          style: TextStyle(color: defaultColor, fontSize: 16),
+        ),
+      ];
+    }
+
+    int currentIndex = 0;
+    final List<InlineSpan> spans = [];
+
+    for (final match in matches) {
+      if (match.start > currentIndex) {
+        spans.add(
+          TextSpan(
+            text: text.substring(currentIndex, match.start),
+            style: TextStyle(color: defaultColor, fontSize: 16),
+          ),
+        );
+      }
+
+      final url = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: url,
+          style: const TextStyle(
+            color: Colors.blue,
+            decoration: TextDecoration.underline,
+            fontSize: 16,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () async {
+              try {
+                final uri = Uri.parse(url);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (e) {
+                debugPrint('Could not launch $url');
+              }
+            },
+        ),
+      );
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(currentIndex),
+          style: TextStyle(color: defaultColor, fontSize: 16),
+        ),
+      );
+    }
+
+    return spans;
+  }
+
   Widget _buildStreamBubble(BuildContext context, Map<String, dynamic> data) {
     final role = data['role'] ?? 'user';
     final type = data['type'] ?? 'text';
@@ -718,21 +779,15 @@ class _ChatTabState extends State<ChatTab> {
 
               // Render Text Content
               if (type == 'text' || type == 'mixed' || type == 'file')
-                MarkdownBody(
-                  data: type == 'mixed'
-                      ? content
-                      : (type == 'file' ? 'Attached file: $content' : content),
-                  styleSheet: MarkdownStyleSheet(
-                    p: TextStyle(color: textColor, fontSize: 16),
-                    code: TextStyle(
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontFamily: 'monospace',
-                    ),
-                    codeblockPadding: const EdgeInsets.all(8),
-                    codeblockDecoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
+                SelectableText.rich(
+                  TextSpan(
+                    children: _parseTextWithLinks(
+                      type == 'mixed'
+                          ? content
+                          : (type == 'file'
+                                ? 'Attached file: $content'
+                                : content),
+                      textColor,
                     ),
                   ),
                 ),
@@ -807,21 +862,11 @@ class _ChatTabState extends State<ChatTab> {
                           fontStyle: FontStyle.italic,
                         ),
                       )
-                    : MarkdownBody(
-                        data: message.text,
-                        styleSheet: MarkdownStyleSheet(
-                          p: TextStyle(color: textColor, fontSize: 16),
-                          code: TextStyle(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surface,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontFamily: 'monospace',
-                          ),
-                          codeblockPadding: const EdgeInsets.all(8),
-                          codeblockDecoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(8),
+                    : SelectableText.rich(
+                        TextSpan(
+                          children: _parseTextWithLinks(
+                            message.text,
+                            textColor,
                           ),
                         ),
                       ),

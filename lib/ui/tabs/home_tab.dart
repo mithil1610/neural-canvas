@@ -14,6 +14,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lottie/lottie.dart';
@@ -545,94 +546,205 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
+  Future<bool> _ensureAiConsent(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasConsented = prefs.getBool('has_consented_gemini') ?? false;
+
+    if (hasConsented) return true;
+    if (!context.mounted) return false;
+
+    bool? result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "AI Processing Consent",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "To build your personal Knowledge Graph summaries, Axiom securely processes your uploaded files (text, images, audio, documents) using the Google Gemini AI API infrastructure. Your data is sent directly to Google Cloud processing environments solely for secure indexing and semantic parsing. No data is used to train public models.",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text(
+                      "I Decline",
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.primary,
+                      foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text("Agree & Allow"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result == true) {
+      await prefs.setBool('has_consented_gemini', true);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _processImport({required String source}) async {
-    if (!await AuthService.checkAndIncrementUsage(context)) return;
+    if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
-    if (!await AuthService.checkDailyUploadQuota(context)) return;
+
     try {
-      String? filePath;
-      String? fileName;
+      List<String> filePaths = [];
+      List<String> fileNames = [];
 
       if (source == 'photo') {
         final ImagePicker picker = ImagePicker();
-        final XFile? image = await picker.pickImage(
-          source: ImageSource.gallery,
+        final List<XFile> images = await picker.pickMultiImage(
           imageQuality: 75,
           maxWidth: 1920,
           maxHeight: 1080,
         );
-        if (image == null) return;
-        filePath = image.path;
-        fileName = image.name;
+        if (images.isEmpty) return;
+
+        List<XFile> pickedFiles = images;
+        if (pickedFiles.length > 10) {
+          if (mounted) {
+            UIUtils.showFloatingSnackBar(
+              context,
+              'Maximum allocation threshold exceeded. Only the first 10 selected files will be processed.',
+            );
+          }
+          pickedFiles = pickedFiles.take(10).toList();
+        }
+
+        filePaths = pickedFiles.map((e) => e.path).toList();
+        fileNames = pickedFiles.map((e) => e.name).toList();
       } else {
         FilePickerResult? result = await FilePicker.platform.pickFiles(
           type: FileType.custom,
+          allowMultiple: true,
           allowedExtensions: ['pdf', 'txt', 'docx'],
         );
-        if (result == null || result.files.single.path == null) return;
-        filePath = result.files.single.path!;
-        fileName = result.files.single.name;
+        if (result == null || result.files.isEmpty) return;
+
+        var pickedFiles = result.files;
+        if (pickedFiles.length > 10) {
+          if (mounted) {
+            UIUtils.showFloatingSnackBar(
+              context,
+              'Maximum allocation threshold exceeded. Only the first 10 selected files will be processed.',
+            );
+          }
+          pickedFiles = pickedFiles.take(10).toList();
+        }
+
+        filePaths = pickedFiles.map((e) => e.path!).toList();
+        fileNames = pickedFiles.map((e) => e.name).toList();
       }
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
       bool isPremium = await UserService.isUserPremium(user.uid);
-      if (!isPremium) {
-        final length = File(filePath).lengthSync();
-        if (length > 5 * 1024 * 1024) {
-          if (mounted) {
-            UIUtils.showFloatingSnackBar(
-              context,
-              'Free tier is limited to 5MB files. Please optimize or upgrade to Infinite Brain.',
-            );
-          }
-          return;
-        }
-      }
 
       setState(() {
         activeLoadingAction = 'import';
       });
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
-      );
+      int successCount = 0;
 
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        final bytes = await File(filePath).readAsBytes();
-        uploadTask = storageRef.putData(bytes);
-      } else {
-        uploadTask = storageRef.putFile(File(filePath));
+      for (int i = 0; i < filePaths.length; i++) {
+        if (!mounted) break;
+        String filePath = filePaths[i];
+        String fileName = fileNames[i];
+
+        if (!await AuthService.checkAndIncrementUsage(context)) break;
+        if (!mounted) break;
+        if (!await AuthService.checkDailyUploadQuota(context)) break;
+
+        if (!isPremium) {
+          final length = File(filePath).lengthSync();
+          if (length > 5 * 1024 * 1024) {
+            if (mounted) {
+              UIUtils.showFloatingSnackBar(
+                context,
+                'Skipping $fileName: Free tier is limited to 5MB files.',
+              );
+            }
+            continue;
+          }
+        }
+
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
+        );
+
+        UploadTask uploadTask;
+        if (kIsWeb) {
+          final bytes = await File(filePath).readAsBytes();
+          uploadTask = storageRef.putData(bytes);
+        } else {
+          uploadTask = storageRef.putFile(File(filePath));
+        }
+
+        final snapshot = await uploadTask;
+        final mediaUrl = await snapshot.ref.getDownloadURL();
+        final ext = fileName.contains('.')
+            ? fileName.split('.').last.toLowerCase()
+            : 'unknown';
+
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('knowledge_base')
+            .doc();
+        await docRef.set({
+          'fileName': fileName,
+          'fileUrl': mediaUrl,
+          'fileType': ext,
+          'uploadedAt': FieldValue.serverTimestamp(),
+          'aiSummary': 'Processing data...',
+        });
+
+        // await AuthService.incrementDailyUploadQuota();
+        AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
+        successCount++;
       }
 
-      final snapshot = await uploadTask;
-      final mediaUrl = await snapshot.ref.getDownloadURL();
-      final ext = fileName.contains('.')
-          ? fileName.split('.').last.toLowerCase()
-          : 'unknown';
-
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('knowledge_base')
-          .doc();
-      await docRef.set({
-        'fileName': fileName,
-        'fileUrl': mediaUrl,
-        'fileType': ext,
-        'uploadedAt': FieldValue.serverTimestamp(),
-        'aiSummary': 'Processing data...',
-      });
-
-      await AuthService.incrementDailyUploadQuota();
-
-      AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
-
-      if (mounted) {
-        UIUtils.showFloatingSnackBar(context, 'Asset successfully ingested!');
+      if (mounted && successCount > 0) {
+        UIUtils.showFloatingSnackBar(
+          context,
+          '$successCount asset(s) successfully ingested!',
+        );
       }
     } catch (e) {
       if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
@@ -646,6 +758,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleScan() async {
+    if (!await _ensureAiConsent(context)) return;
+    if (!mounted) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
     if (!mounted) return;
     if (!await AuthService.checkDailyUploadQuota(context)) return;
@@ -697,7 +811,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         'aiSummary': 'Processing image data...',
       });
 
-      await AuthService.incrementDailyUploadQuota();
+      // await AuthService.incrementDailyUploadQuota();
 
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
@@ -716,6 +830,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleVoiceNote() async {
+    if (!await _ensureAiConsent(context)) return;
+    if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
@@ -800,7 +916,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           'aiSummary': 'Transcribing audio...',
                         });
 
-                        await AuthService.incrementDailyUploadQuota();
+                        // await AuthService.incrementDailyUploadQuota();
 
                         AssetAnalyzerService.analyzeIngestedAsset(
                           docRef.id,
@@ -848,6 +964,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handlePasteText() async {
+    if (!await _ensureAiConsent(context)) return;
+    if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
@@ -940,7 +1058,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         'aiSummary': rawText,
                       });
 
-                      await AuthService.incrementDailyUploadQuota();
+                      // await AuthService.incrementDailyUploadQuota();
 
                       if (mounted) {
                         UIUtils.showFloatingSnackBar(

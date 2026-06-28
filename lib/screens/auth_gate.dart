@@ -86,7 +86,7 @@ class _AuthGateState extends State<AuthGate> {
                             children: [
                               const TextSpan(
                                 text:
-                                    "AXIOM • PUBLIC BETA PRIVACY POLICY & DATA GOVERNANCE\n\n",
+                                    "AXIOM • PRIVACY POLICY & DATA GOVERNANCE\n\n",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -317,7 +317,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               const TextSpan(
                                 text:
-                                    '3. Beta Limitations & Service Availability\n',
+                                    '3. Service Limitations & Availability\n',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontWeight: FontWeight.bold,
@@ -326,7 +326,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'Axiom is currently in a Public Beta phase. The service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles (currently 200 frames) to maintain network stability.\n\n',
+                                    'Axiom service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles (currently 200 frames) to maintain network stability.\n\n',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,

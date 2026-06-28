@@ -42,11 +42,11 @@ class AuthService {
                     ),
                   ),
                   title: const Text(
-                    'Beta Bandwidth Reached',
+                    'Bandwidth Reached',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   content: Text(
-                    "You've used $limit / $limit of your free monthly Beta frames. Your Second Brain capacity will reset next month!",
+                    "You've used $limit / $limit of your free monthly frames. Your Second Brain capacity will reset next month!",
                     style: const TextStyle(color: Colors.white70),
                   ),
                   actions: [
@@ -120,18 +120,18 @@ class AuthService {
                     ),
                   ),
                   title: const Text(
-                    'Daily Upload Limit Reached',
+                    'Daily Limit Reached',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   content: const Text(
-                    "Please upgrade to Axiom Premium to unlock unlimited neural storage processing.",
+                    "To keep Axiom fast and stable for everyone, file ingestion is capped at 10 items per day on this version. Your quota resets at midnight! Thank you for using Axiom.",
                     style: TextStyle(color: Colors.white70),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
                       child: const Text(
-                        'Understood',
+                        'OK',
                         style: TextStyle(color: Colors.white60),
                       ),
                     ),

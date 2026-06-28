@@ -1316,7 +1316,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Public Beta v1.0.0",
+                                "Welcome to Axiom v1.0.0",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(

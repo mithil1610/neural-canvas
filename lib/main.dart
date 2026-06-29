@@ -44,7 +44,9 @@ Future<void> main() async {
     );
 
     // Initialize RevenueCat
-    await Purchases.configure(PurchasesConfiguration("YOUR_REVENUECAT_APPLE_API_KEY"));
+    await Purchases.configure(
+      PurchasesConfiguration("appl_DIumzQmJmaNDOQiPrfxmrLWixBy"),
+    );
 
     // Sync Customer Info with Firestore
     Purchases.addCustomerInfoUpdateListener((customerInfo) async {
@@ -53,16 +55,19 @@ Future<void> main() async {
         String newTier = "Free";
         if (customerInfo.entitlements.all["infinite_brain"]?.isActive == true) {
           newTier = "Infinite Brain";
-        } else if (customerInfo.entitlements.all["creation_engine"]?.isActive == true) {
+        } else if (customerInfo.entitlements.all["creation_engine"]?.isActive ==
+            true) {
           newTier = "Creation Engine";
         }
 
         try {
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-            'accountTier': newTier,
-          });
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({'accountTier': newTier});
         } catch (e) {
-          if (kDebugMode) debugPrint("Failed to sync RevenueCat entitlement: $e");
+          if (kDebugMode)
+            debugPrint("Failed to sync RevenueCat entitlement: $e");
         }
       }
     });

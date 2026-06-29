@@ -14,7 +14,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lottie/lottie.dart';
@@ -553,79 +552,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
-  Future<bool> _ensureAiConsent(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool hasConsented = prefs.getBool('has_consented_gemini') ?? false;
-
-    if (hasConsented) return true;
-    if (!context.mounted) return false;
-
-    bool? result = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "AI Processing Consent",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "To build your personal Knowledge Graph summaries, Axiom securely processes your uploaded files (text, images, audio, documents) using the Google Gemini AI API infrastructure. Your data is sent directly to Google Cloud processing environments solely for secure indexing and semantic parsing. No data is used to train public models.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text(
-                      "I Decline",
-                      style: TextStyle(color: Colors.white60),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(ctx).colorScheme.primary,
-                      foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
-                    ),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text("Agree & Allow"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (result == true) {
-      await prefs.setBool('has_consented_gemini', true);
-      return true;
-    }
-    return false;
-  }
-
   Future<void> _processImport({required String source}) async {
-    if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
 
     try {
@@ -806,7 +733,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleScan() async {
     bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
     if (!consentGranted) return;
-    if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
     if (!mounted) return;
@@ -880,7 +806,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleVoiceNote() async {
     bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
     if (!consentGranted) return;
-    if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -1016,7 +941,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handlePasteText() async {
     bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
     if (!consentGranted) return;
-    if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;

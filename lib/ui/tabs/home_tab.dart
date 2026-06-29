@@ -28,6 +28,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../screens/cinematic_reel_screen.dart';
 import '../screens/visual_lookbook_screen.dart';
+import '../../utils/privacy_helper.dart';
 
 class QuickAction {
   final IconData icon;
@@ -488,6 +489,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleImport() async {
+    bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
+    if (!consentGranted) return;
     if (activeLoadingAction != null) return;
     showModalBottomSheet(
       context: context,
@@ -801,6 +804,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleScan() async {
+    bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
+    if (!consentGranted) return;
     if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     if (!await AuthService.checkAndIncrementUsage(context)) return;
@@ -873,6 +878,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handleVoiceNote() async {
+    bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
+    if (!consentGranted) return;
     if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
@@ -1007,6 +1014,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<void> _handlePasteText() async {
+    bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
+    if (!consentGranted) return;
     if (!await _ensureAiConsent(context)) return;
     if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;

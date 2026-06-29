@@ -45,9 +45,9 @@ class AuthService {
                     'Bandwidth Reached',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  content: Text(
-                    "You've used $limit / $limit of your free monthly frames. Your Second Brain capacity will reset next month!",
-                    style: const TextStyle(color: Colors.white70),
+                  content: const Text(
+                    "You've used your monthly processing capacity. Your Second Brain capacity will reset next month!",
+                    style: TextStyle(color: Colors.white70),
                   ),
                   actions: [
                     TextButton(

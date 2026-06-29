@@ -326,7 +326,7 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               TextSpan(
                                 text:
-                                    'Axiom service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles (currently 200 frames) to maintain network stability.\n\n',
+                                    'Axiom service is provided \'as-is\' without explicit warranties of continuous cloud storage availability or real-time AI response latency. We reserve the absolute right to modify usage throttles to maintain network stability.\n\n',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,

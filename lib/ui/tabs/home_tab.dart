@@ -22,7 +22,7 @@ import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
 import '../screens/subscription_paywall_screen.dart';
-import '../screens/reel_storyboard_screen.dart';
+
 import '../screens/chronos_matrix_screen.dart';
 
 class QuickAction {
@@ -1320,8 +1320,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(
-                                "Your 200 free monthly AI bandwidth frames are fully charged and synchronized.",
-                                style: TextStyle(color: Colors.white54),
+                                "Your AI bandwidth is fully charged and synchronized.",
+                                style: const TextStyle(color: Colors.white54),
                               ),
                             ),
                           ],
@@ -1745,188 +1745,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(height: 12),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        // Cinematic Reel Button
-                                        GestureDetector(
-                                          onTap: () async {
-                                            final userDoc =
-                                                await FirebaseFirestore.instance
-                                                    .collection('users')
-                                                    .doc(user.uid)
-                                                    .get();
-                                            if (userDoc
-                                                    .data()?['accountTier'] !=
-                                                'premium') {
-                                              if (context.mounted) {
-                                                showBlurUpsellOverlay(context);
-                                              }
-                                              return;
-                                            }
-                                            if (context.mounted) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ReelStoryboardScreen(
-                                                        dateKey: dateKey,
-                                                        clusterItems: items,
-                                                      ),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFFA78BFA,
-                                              ).withValues(alpha: 0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: const Color(
-                                                  0xFFA78BFA,
-                                                ).withValues(alpha: 0.5),
-                                              ),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.movie_creation_outlined,
-                                                  size: 16,
-                                                  color: Color(0xFFA78BFA),
-                                                ),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  "Generate Cinematic Reel",
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFFA78BFA),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        // Visual Lookbook Button
-                                        GestureDetector(
-                                          onTap: () async {
-                                            HapticFeedback.lightImpact();
-                                            final userDoc =
-                                                await FirebaseFirestore.instance
-                                                    .collection('users')
-                                                    .doc(user.uid)
-                                                    .get();
-                                            if (userDoc
-                                                    .data()?['accountTier'] !=
-                                                'premium') {
-                                              if (context.mounted) {
-                                                showBlurUpsellOverlay(context);
-                                              }
-                                              return;
-                                            }
-                                            final filtered = items.where((doc) {
-                                              final data =
-                                                  doc.data()
-                                                      as Map<String, dynamic>;
-                                              final type =
-                                                  data['fileType']
-                                                      ?.toString() ??
-                                                  '';
-                                              if (!type.startsWith('image')) {
-                                                return false;
-                                              }
-                                              final summary =
-                                                  data['aiSummary']
-                                                      ?.toString()
-                                                      .toLowerCase() ??
-                                                  '';
-                                              return summary.length < 150 &&
-                                                  !summary.contains(
-                                                    "document",
-                                                  ) &&
-                                                  !summary.contains("text") &&
-                                                  !summary.contains(
-                                                    "transcript",
-                                                  );
-                                            }).toList();
 
-                                            if (filtered.isEmpty &&
-                                                context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    "No suitable lifestyle/scenery images found for a Lookbook.",
-                                                  ),
-                                                ),
-                                              );
-                                              return;
-                                            }
-                                            if (context.mounted) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ReelStoryboardScreen(
-                                                        dateKey:
-                                                            "$dateKey Lookbook",
-                                                        clusterItems: filtered,
-                                                      ),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF10B981,
-                                              ).withValues(alpha: 0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: const Color(
-                                                  0xFF10B981,
-                                                ).withValues(alpha: 0.5),
-                                              ),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons
-                                                      .auto_awesome_mosaic_outlined,
-                                                  size: 16,
-                                                  color: Color(0xFF10B981),
-                                                ),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  "Launch Visual Lookbook",
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF10B981),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ],
                                 ),
                               ),

@@ -23,6 +23,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+import 'dart:io' show Platform;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
@@ -39,38 +40,45 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    await FirebaseAppCheck.instance.activate(
-      providerApple: AppleAppAttestProvider(),
-    );
+    if (Platform.isIOS) {
+      await FirebaseAppCheck.instance.activate(
+        providerApple: AppleAppAttestProvider(),
+      );
 
-    // Initialize RevenueCat
-    await Purchases.configure(
-      PurchasesConfiguration("appl_DIumzQmJmaNDOQiPrfxmrLWixBy"),
-    );
+      // Initialize RevenueCat
+      await Purchases.configure(
+        PurchasesConfiguration("appl_DIumzQmJmaNDOQiPrfxmrLWixBy"),
+      );
 
-    // Sync Customer Info with Firestore
-    Purchases.addCustomerInfoUpdateListener((customerInfo) async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        String newTier = "Free";
-        if (customerInfo.entitlements.all["infinite_brain"]?.isActive == true) {
-          newTier = "Infinite Brain";
-        } else if (customerInfo.entitlements.all["creation_engine"]?.isActive ==
-            true) {
-          newTier = "Creation Engine";
+      // Sync Customer Info with Firestore
+      Purchases.addCustomerInfoUpdateListener((customerInfo) async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          String newTier = "Free";
+          if (customerInfo.entitlements.all["infinite_brain"]?.isActive ==
+              true) {
+            newTier = "Infinite Brain";
+          } else if (customerInfo
+                  .entitlements
+                  .all["creation_engine"]
+                  ?.isActive ==
+              true) {
+            newTier = "Creation Engine";
+          }
+
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({'accountTier': newTier});
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint("Failed to sync RevenueCat entitlement: $e");
+            }
+          }
         }
-
-        try {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .update({'accountTier': newTier});
-        } catch (e) {
-          if (kDebugMode)
-            debugPrint("Failed to sync RevenueCat entitlement: $e");
-        }
-      }
-    });
+      });
+    }
 
     // Route all framework-level errors straight to telemetry reporting channel
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

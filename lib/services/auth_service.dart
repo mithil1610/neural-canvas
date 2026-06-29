@@ -76,18 +76,16 @@ class AuthService {
     }
   }
 
-  static Future<bool> checkDailyUploadQuota(BuildContext context) async {
+  static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
-    final uid = user.uid;
+    final uid = userId ?? user.uid;
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final userDoc = await userRef.get();
       final data = userDoc.data() ?? {};
-      final String accountTier = data['accountTier'] ?? 'free';
+      final String accountTier = data['accountTier'] ?? 'Free';
       int aiUsageCount = data['aiUsageCount'] ?? 0;
       final String lastUploadDate = data['lastUploadDate'] ?? '';
 
@@ -95,54 +93,68 @@ class AuthService {
 
       if (lastUploadDate != todayDate) {
         aiUsageCount = 0;
-        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        await userRef.update({
           'aiUsageCount': 0,
           'lastUploadDate': todayDate,
         });
       }
 
-      if (accountTier == 'free' && aiUsageCount >= 10) {
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) {
-              return BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: AlertDialog(
-                  backgroundColor: Theme.of(
-                    ctx,
-                  ).colorScheme.surface.withValues(alpha: 0.8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      width: 1,
-                    ),
-                  ),
-                  title: const Text(
-                    'Daily Limit Reached',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  content: const Text(
-                    "To keep Axiom fast and stable for everyone, file ingestion is capped at 10 items per day on this version. Your quota resets at midnight! Thank you for using Axiom.",
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text(
-                        'OK',
-                        style: TextStyle(color: Colors.white60),
+      if (accountTier == 'Free') {
+        if (aiUsageCount >= 10) {
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (ctx) {
+                return BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: AlertDialog(
+                    backgroundColor: Theme.of(ctx).colorScheme.surface.withValues(alpha: 0.8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
+                    title: const Text(
+                      'Daily Limit Reached',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    content: const Text(
+                      "To keep Axiom fast and stable for everyone, file ingestion is capped at 10 items per day on this version. Your quota resets at midnight! Thank you for using Axiom.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('OK', style: TextStyle(color: Colors.white60)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          }
+          return false;
+        }
+      } else if (accountTier == 'Creation Engine' || accountTier == 'Infinite Brain') {
+        // Bypass limits completely
+      } else if (accountTier == 'Enterprise Nexus') {
+        // Bypass limits and append indicator
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Enterprise Nexus Clearance Active: Limits Bypassed'),
+              backgroundColor: Colors.blueAccent,
+            ),
           );
         }
-        return false;
       }
+
+      final batch = FirebaseFirestore.instance.batch();
+      batch.update(userDoc.reference, {'aiUsageCount': FieldValue.increment(1)});
+      await batch.commit();
+
       return true;
     } catch (e) {
       if (kDebugMode) debugPrint("Error checking daily quota: $e");

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -35,6 +38,34 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    await FirebaseAppCheck.instance.activate(
+      providerApple: AppleAppAttestProvider(),
+    );
+
+    // Initialize RevenueCat
+    await Purchases.configure(PurchasesConfiguration("YOUR_REVENUECAT_APPLE_API_KEY"));
+
+    // Sync Customer Info with Firestore
+    Purchases.addCustomerInfoUpdateListener((customerInfo) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        String newTier = "Free";
+        if (customerInfo.entitlements.all["infinite_brain"]?.isActive == true) {
+          newTier = "Infinite Brain";
+        } else if (customerInfo.entitlements.all["creation_engine"]?.isActive == true) {
+          newTier = "Creation Engine";
+        }
+
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'accountTier': newTier,
+          });
+        } catch (e) {
+          if (kDebugMode) debugPrint("Failed to sync RevenueCat entitlement: $e");
+        }
+      }
+    });
 
     // Route all framework-level errors straight to telemetry reporting channel
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

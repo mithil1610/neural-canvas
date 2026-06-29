@@ -428,7 +428,8 @@ class _AuthGateState extends State<AuthGate> {
                 'uid': userCredential.user!.uid,
                 'fullName': _nameController.text.trim(),
                 'email': _emailController.text.trim(),
-                'accountTier': 'free',
+                'accountTier': 'Free',
+                'aiUsageCount': 0,
                 'createdAt': FieldValue.serverTimestamp(),
                 'lastLoginAt': FieldValue.serverTimestamp(),
                 'legalCompliance': {

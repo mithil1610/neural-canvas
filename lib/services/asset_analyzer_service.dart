@@ -136,15 +136,7 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
 
       if (e.toString().contains('RESOURCE_EXHAUSTED') ||
           e.toString().contains('429')) {
-        final context = navigatorKey.currentContext;
-        if (context != null && context.mounted) {
-          UIUtils.showFloatingSnackBar(
-            context,
-            "Neural synapses are processing heavy traffic. Syncing in 3 seconds...",
-          );
-        }
-        await Future.delayed(const Duration(seconds: 3));
-        return analyzeIngestedAsset(docId, fileUrl, fileType);
+        throw Exception('429');
       }
 
       await _updateSummaryAndTitle(

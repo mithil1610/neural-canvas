@@ -2180,8 +2180,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
+    }
+}
+  
 class _GenerateDialog extends StatefulWidget {
   final User user;
   const _GenerateDialog({required this.user});

@@ -1233,13 +1233,25 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               floating: true,
               backgroundColor: cs.surface.withValues(alpha: 0.9),
               elevation: 0,
-              title: const Text(
-                'Axiom',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 24,
-                  letterSpacing: -0.5,
-                ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    width: 24,
+                    height: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Axiom',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 24,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
               ),
               actions: [
                 GestureDetector(
@@ -1316,7 +1328,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Axiom v1.0.0",
+                                "Welcome to Axiom v1.1.2",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(

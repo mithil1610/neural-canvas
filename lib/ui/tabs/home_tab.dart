@@ -20,12 +20,10 @@ import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
 import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
-import '../screens/subscription_paywall_screen.dart';
 import '../modals/paywall_sheet.dart';
 
 import '../screens/chronos_matrix_screen.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../screens/cinematic_reel_screen.dart';
 import '../screens/visual_lookbook_screen.dart';
 import '../../utils/privacy_helper.dart';

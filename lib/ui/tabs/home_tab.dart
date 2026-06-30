@@ -1765,7 +1765,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                                       ?.isActive !=
                                                   true) {
                                                 if (context.mounted) {
-                                                  _showModalPaywall(context);
+                                                  showModalBottomSheet(
+                                                    context: context,
+                                                    isScrollControlled: true,
+                                                    backgroundColor: Colors.transparent,
+                                                    builder: (context) => const PaywallSheet(),
+                                                  );
                                                 }
                                                 return;
                                               }
@@ -1831,7 +1836,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                                       ?.isActive !=
                                                   true) {
                                                 if (context.mounted) {
-                                                  _showModalPaywall(context);
+                                                  showModalBottomSheet(
+                                                    context: context,
+                                                    isScrollControlled: true,
+                                                    backgroundColor: Colors.transparent,
+                                                    builder: (context) => const PaywallSheet(),
+                                                  );
                                                 }
                                                 return;
                                               }
@@ -2113,7 +2123,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
                 
                 if (accountTier != 'Infinite Brain') {
-                  if (context.mounted) _showModalPaywall(context);
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const PaywallSheet(),
+                    );
+                  }
                 } else {
                   if (context.mounted) {
                     Navigator.push(
@@ -2150,7 +2167,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
                 
                 if (accountTier != 'Infinite Brain') {
-                  if (context.mounted) _showModalPaywall(context);
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const PaywallSheet(),
+                    );
+                  }
                 } else {
                   if (context.mounted) {
                     Navigator.push(

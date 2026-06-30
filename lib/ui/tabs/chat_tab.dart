@@ -204,7 +204,8 @@ class _ChatTabState extends State<ChatTab> {
     final List<Content> promptContents = [];
     for (var doc in historySnapshot.docs.reversed) {
       final data = doc.data();
-      final role = data['role'] == 'ai' ? 'model' : 'user';
+      final rawRole = data['role']?.toString().toLowerCase() ?? 'user';
+      final role = (rawRole == 'model' || rawRole == 'ai' || rawRole == 'system' || rawRole == 'assistant') ? 'model' : 'user';
       final text = data['content'] as String? ?? '';
 
       if (doc.id == userMessageRef.id) {

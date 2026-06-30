@@ -938,6 +938,27 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     }
   }
 
+  Future<String> _generateTitleFromText(String text) async {
+    const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (geminiApiKey.isEmpty) {
+      return 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt';
+    }
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash',
+        apiKey: geminiApiKey,
+      );
+      final prompt = "Review this pasted text snippet. Generate a highly descriptive, professional 3-to-4 word summary title. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Text: ${text.substring(0, text.length > 500 ? 500 : text.length)}";
+      final response = await model.generateContent([Content.text(prompt)]);
+      final title = response.text?.trim() ?? 'Untitled Note';
+      final sanitizedTitle = title.replaceAll('"', '').replaceAll('\n', ' ').trim();
+      return '$sanitizedTitle.txt';
+    } catch (e) {
+      if (kDebugMode) debugPrint("Auto-titling failed: $e");
+      return 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt';
+    }
+  }
+
   Future<void> _handlePasteText() async {
     bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
     if (!consentGranted) return;
@@ -1025,9 +1046,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           .doc(user.uid)
                           .collection('knowledge_base')
                           .doc();
+                      final genTitle = await _generateTitleFromText(rawText);
                       await docRef.set({
-                        'fileName':
-                            'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt',
+                        'fileName': genTitle,
                         'fileUrl': '',
                         'fileType': 'text',
                         'uploadedAt': FieldValue.serverTimestamp(),
@@ -1411,6 +1432,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       .toList(),
                 ),
               ),
+            ),
+            SliverToBoxAdapter(
+              child: _buildVisualMusingsActionRow(context),
             ),
 
             // --- Upcoming Events Strip (Chronos Lens) ---
@@ -2069,13 +2093,99 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildVisualMusingsActionRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
+                
+                if (accountTier != 'Infinite Brain') {
+                  if (context.mounted) _showModalPaywall(context);
+                } else {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CinematicReelScreen()),
+                    );
+                  }
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.movie_creation_outlined, size: 16, color: Color(0xFFF59E0B)),
+                    SizedBox(width: 6),
+                    Text("Generate Cinematic Reel", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
+                
+                if (accountTier != 'Infinite Brain') {
+                  if (context.mounted) _showModalPaywall(context);
+                } else {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const VisualLookbookScreen()),
+                    );
+                  }
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.auto_awesome_mosaic_outlined, size: 16, color: Color(0xFF10B981)),
+                    SizedBox(width: 6),
+                    Text("Launch Visual Lookbook", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showModalPaywall(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
+        bool isProcessing = false;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
             color: Color(0xFF0F172A),
@@ -2115,24 +2225,70 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 32),
-              Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _buildPricingCard(
-                      title: "Creation Engine",
-                      price: "\$19.99/mo",
-                      annualPrice: "or \$200/yr",
-                      color: const Color(0xFF3B82F6),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPricingCard(
-                      title: "Infinite Brain",
-                      price: "\$49.99/mo",
-                      annualPrice: "or \$450/yr",
-                      color: const Color(0xFFA78BFA),
-                      isPopular: true,
-                    ),
+              if (isProcessing)
+                const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFFA78BFA)),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _buildPricingCard(
+                        title: "Creation Engine",
+                        price: "\$19.99/mo",
+                        annualPrice: "or \$200/yr",
+                        color: const Color(0xFF3B82F6),
+                        onTap: () async {
+                          setModalState(() { isProcessing = true; });
+                          try {
+                            Offerings offerings = await Purchases.getOfferings();
+                            Offering? defaultOffering = offerings.current;
+                            if (defaultOffering?.monthly != null) {
+                              await Purchases.purchasePackage(defaultOffering!.monthly!);
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            if (kDebugMode) debugPrint("Purchase error: $e");
+                          } finally {
+                            setModalState(() { isProcessing = false; });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPricingCard(
+                        title: "Infinite Brain",
+                        price: "\$49.99/mo",
+                        annualPrice: "or \$450/yr",
+                        color: const Color(0xFFA78BFA),
+                        isPopular: true,
+                        onTap: () async {
+                          setModalState(() { isProcessing = true; });
+                          try {
+                            Offerings offerings = await Purchases.getOfferings();
+                            Offering? defaultOffering = offerings.current;
+                            if (defaultOffering != null) {
+                              Package? targetPackage;
+                              for (var pkg in defaultOffering.availablePackages) {
+                                if (pkg.identifier == 'infinite_monthly' || pkg.identifier == 'infinite_yearly') {
+                                  targetPackage = pkg;
+                                  break;
+                                }
+                              }
+                              if (targetPackage != null) {
+                                await Purchases.purchasePackage(targetPackage);
+                                if (context.mounted) Navigator.pop(context);
+                              }
+                            }
+                          } catch (e) {
+                            if (kDebugMode) debugPrint("Purchase error: $e");
+                          } finally {
+                            setModalState(() { isProcessing = false; });
+                          }
+                        },
+                      ),
                     const SizedBox(height: 32),
                     GestureDetector(
                       onTap: () async {
@@ -2177,11 +2333,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             ],
           ),
         );
+          },
+        );
       },
     );
   }
 
-  Widget _buildPricingCard({required String title, required String price, required String annualPrice, required Color color, bool isPopular = false}) {
+  Widget _buildPricingCard({required String title, required String price, required String annualPrice, required Color color, bool isPopular = false, VoidCallback? onTap}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -2217,7 +2375,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: onTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 foregroundColor: Colors.white,

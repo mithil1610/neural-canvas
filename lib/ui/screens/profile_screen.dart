@@ -256,6 +256,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
 
+  Widget _buildUsageMetricsCard(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder(
+      future: Future.wait([
+        FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+        FirebaseFirestore.instance.collection('users').doc(user.uid).collection('knowledge_base').count().get(),
+      ]),
+      builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final userDoc = snapshot.data![0] as DocumentSnapshot;
+        final kbCount = (snapshot.data![1] as AggregateQuerySnapshot).count ?? 0;
+        final accountTier = userDoc.data() != null ? (userDoc.data() as Map<String, dynamic>)['accountTier'] ?? 'Free' : 'Free';
+
+        final isUnlimited = accountTier == 'Creation Engine' || accountTier == 'Infinite Brain';
+        final limit = 10;
+        final progress = isUnlimited ? 1.0 : (kbCount / limit).clamp(0.0, 1.0);
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Storage Metrics",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: accountTier == 'Free' ? Colors.grey.withValues(alpha: 0.2) : const Color(0xFFA78BFA).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      accountTier,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: accountTier == 'Free' ? Colors.grey : const Color(0xFFA78BFA),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "$kbCount",
+                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, height: 1),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isUnlimited ? "items ingested (∞ unlimited)" : "of $limit items used",
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isUnlimited ? const Color(0xFFA78BFA) : (progress >= 1.0 ? Colors.redAccent : Theme.of(context).colorScheme.primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -340,6 +430,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 40),
+                  _buildUsageMetricsCard(context),
                   const SizedBox(height: 40),
                   // Name Input
                   TextField(

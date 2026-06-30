@@ -946,10 +946,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         model: 'gemini-1.5-flash',
         apiKey: geminiApiKey,
       );
-      final prompt = "Review this pasted text snippet. Generate a highly descriptive, professional 3-to-4 word summary title. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Text: ${text.substring(0, text.length > 500 ? 500 : text.length)}";
+      final prompt =
+          "Review this pasted text snippet. Generate a highly descriptive, professional 3-to-4 word summary title. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Text: ${text.substring(0, text.length > 500 ? 500 : text.length)}";
       final response = await model.generateContent([Content.text(prompt)]);
       final title = response.text?.trim() ?? 'Untitled Note';
-      final sanitizedTitle = title.replaceAll('"', '').replaceAll('\n', ' ').trim();
+      final sanitizedTitle = title
+          .replaceAll('"', '')
+          .replaceAll('\n', ' ')
+          .trim();
       return '$sanitizedTitle.txt';
     } catch (e) {
       if (kDebugMode) debugPrint("Auto-titling failed: $e");
@@ -1238,7 +1242,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/images/logo.png',
+                    'assets/icon/app_logo.png',
                     width: 24,
                     height: 24,
                   ),
@@ -1448,9 +1452,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: _buildVisualMusingsActionRow(context),
-            ),
+            SliverToBoxAdapter(child: _buildVisualMusingsActionRow(context)),
 
             // --- Upcoming Events Strip (Chronos Lens) ---
             if (user != null)
@@ -1982,9 +1984,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               onTap: () async {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user == null) return;
-                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                final userDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .get();
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
-                
+
                 if (accountTier != 'Infinite Brain') {
                   if (context.mounted) {
                     showModalBottomSheet(
@@ -1998,23 +2003,41 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   if (context.mounted) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CinematicReelScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const CinematicReelScreen(),
+                      ),
                     );
                   }
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                  ),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.movie_creation_outlined, size: 16, color: Color(0xFFF59E0B)),
+                    Icon(
+                      Icons.movie_creation_outlined,
+                      size: 16,
+                      color: Color(0xFFF59E0B),
+                    ),
                     SizedBox(width: 6),
-                    Text("Generate Cinematic Reel", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                    Text(
+                      "Generate Cinematic Reel",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFF59E0B),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2026,9 +2049,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               onTap: () async {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user == null) return;
-                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                final userDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .get();
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
-                
+
                 if (accountTier != 'Infinite Brain') {
                   if (context.mounted) {
                     showModalBottomSheet(
@@ -2042,23 +2068,41 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                   if (context.mounted) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const VisualLookbookScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const VisualLookbookScreen(),
+                      ),
                     );
                   }
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                  ),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.auto_awesome_mosaic_outlined, size: 16, color: Color(0xFF10B981)),
+                    Icon(
+                      Icons.auto_awesome_mosaic_outlined,
+                      size: 16,
+                      color: Color(0xFF10B981),
+                    ),
                     SizedBox(width: 6),
-                    Text("Launch Visual Lookbook", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                    Text(
+                      "Launch Visual Lookbook",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2067,9 +2111,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         ],
       ),
     );
-    }
+  }
 }
-  
+
 class _GenerateDialog extends StatefulWidget {
   final User user;
   const _GenerateDialog({required this.user});
@@ -2333,5 +2377,4 @@ class _GenerateDialogState extends State<_GenerateDialog> {
       ),
     );
   }
-
 }

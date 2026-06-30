@@ -1130,7 +1130,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
     if (!isUserPremium) {
       // If the user's account flag is marked as a free account, present Paywall
-      SubscriptionPaywallScreen.show(context);
+      _showModalPaywall(context);
       return; // Stops the Generate engine from running
     }
 

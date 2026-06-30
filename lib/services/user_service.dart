@@ -12,9 +12,8 @@ class UserService {
       if (userDoc.exists) {
         final data = userDoc.data();
         if (data != null &&
-            (data['isPro'] == true ||
-                data['accountTier'] == 'pro' ||
-                data['accountTier'] == 'premium')) {
+            (data['accountTier'] == 'Creation Engine' ||
+                data['accountTier'] == 'Infinite Brain')) {
           return true;
         }
       }

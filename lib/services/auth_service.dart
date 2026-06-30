@@ -16,12 +16,12 @@ class AuthService {
           .doc(uid)
           .get();
       final data = userDoc.data() ?? {};
-      final String accountTier = data['accountTier'] ?? 'free';
+      final String accountTier = data['accountTier'] ?? 'Free';
       final int aiUsageCount = data['aiUsageCount'] ?? 0;
 
-      int limit = (accountTier == 'free')
+      int limit = (accountTier == 'Free')
           ? 200
-          : (accountTier == 'premium' || accountTier == 'pro' ? 750 : 3000);
+          : (accountTier == 'Creation Engine' ? 750 : 3000);
 
       if (aiUsageCount >= limit) {
         if (context.mounted) {

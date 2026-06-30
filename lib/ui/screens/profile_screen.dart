@@ -322,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isUnlimited ? "items ingested (∞ unlimited)" : "of $limit items used",
+                    isUnlimited ? "Core Plan Active (Unlimited Assets)" : "of 10 items used today",
                     style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
                   ),
                 ],

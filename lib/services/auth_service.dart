@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
+import '../ui/modals/paywall_sheet.dart';
 
 class AuthService {
   static Future<bool> checkAndIncrementUsage(BuildContext context) async {
@@ -102,37 +103,11 @@ class AuthService {
       if (accountTier == 'Free') {
         if (aiUsageCount >= 10) {
           if (context.mounted) {
-            showDialog(
+            showModalBottomSheet(
               context: context,
-              builder: (ctx) {
-                return BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: AlertDialog(
-                    backgroundColor: Theme.of(ctx).colorScheme.surface.withValues(alpha: 0.8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 1,
-                      ),
-                    ),
-                    title: const Text(
-                      'Daily Limit Reached',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    content: const Text(
-                      "To keep Axiom fast and stable for everyone, file ingestion is capped at 10 items per day on this version. Your quota resets at midnight! Thank you for using Axiom.",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('OK', style: TextStyle(color: Colors.white60)),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const PaywallSheet(),
             );
           }
           return false;

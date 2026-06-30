@@ -23,7 +23,6 @@ import '../../services/auth_service.dart';
 import '../modals/paywall_sheet.dart';
 
 import '../screens/chronos_matrix_screen.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import '../screens/cinematic_reel_screen.dart';
 import '../screens/visual_lookbook_screen.dart';
 import '../../utils/privacy_helper.dart';

@@ -675,6 +675,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
           successCount++;
         } catch (e) {
+          debugPrint("❌ UPLOAD BATCH ERROR: Failed to process asset $fileName. Reason: $e");
           if (e.toString().contains('429')) {
             if (mounted) {
               UIUtils.showFloatingSnackBar(

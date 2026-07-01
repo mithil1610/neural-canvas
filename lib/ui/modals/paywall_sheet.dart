@@ -297,6 +297,26 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           );
                         }
                       } catch (e) {
+                        final errorString = e.toString();
+                        bool isUserCancelled = errorString.contains('PURCHASE_CANCELLED') || 
+                                           errorString.contains('Purchase was cancelled') || 
+                                           errorString.contains('userCancelled: true');
+
+                        if (isUserCancelled) {
+                          debugPrint("ℹ️ Transaction gracefully cancelled by user session.");
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.amber,
+                                duration: Duration(seconds: 2),
+                                content: Text("Purchase cancelled."),
+                              ),
+                            );
+                          }
+                          setState(() => isProcessing = false);
+                          return;
+                        }
+                        
                         debugPrint("❌ STOREKIT RUNTIME EXCEPTION: $e");
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -365,6 +385,26 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           );
                         }
                       } catch (e) {
+                        final errorString = e.toString();
+                        bool isUserCancelled = errorString.contains('PURCHASE_CANCELLED') || 
+                                           errorString.contains('Purchase was cancelled') || 
+                                           errorString.contains('userCancelled: true');
+
+                        if (isUserCancelled) {
+                          debugPrint("ℹ️ Transaction gracefully cancelled by user session.");
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.amber,
+                                duration: Duration(seconds: 2),
+                                content: Text("Purchase cancelled."),
+                              ),
+                            );
+                          }
+                          setState(() => isProcessing = false);
+                          return;
+                        }
+                        
                         debugPrint("❌ STOREKIT RUNTIME EXCEPTION: $e");
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

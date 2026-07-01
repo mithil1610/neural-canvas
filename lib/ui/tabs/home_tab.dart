@@ -18,7 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
-import '../../services/user_service.dart';
+// import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
 import '../modals/paywall_sheet.dart';
 
@@ -488,6 +488,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   Future<void> _handleImport() async {
     bool consentGranted = await PrivacyHelper.ensureAIConsent(context);
     if (!consentGranted) return;
+    if (!mounted) return;
     if (activeLoadingAction != null) return;
     showModalBottomSheet(
       context: context,
@@ -606,9 +607,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       if (user == null) return;
 
       // Fixed Tier Alignment Check for Upload Ceiling Quotas
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
-      bool isPremium = (accountTier == 'Creation Engine' || accountTier == 'Infinite Brain');
+      bool isPremium =
+          (accountTier == 'Creation Engine' || accountTier == 'Infinite Brain');
 
       setState(() {
         activeLoadingAction = 'import';
@@ -744,7 +749,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+          SnackBar(
+            content: Text("Upload encountered an anomaly: ${e.toString()}"),
+          ),
         );
       }
     } finally {
@@ -818,13 +825,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
           await FirebaseAuth.instance.signOut();
           if (mounted) {
-
             Navigator.of(
-
               context,
-
             ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
-
           }
           return;
         }
@@ -840,7 +843,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+          SnackBar(
+            content: Text("Upload encountered an anomaly: ${e.toString()}"),
+          ),
         );
       }
     } finally {
@@ -947,11 +952,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             );
                             await FirebaseAuth.instance.signOut();
                             if (mounted) {
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login_or_register',
-                              (route) => false,
-                            );
-                          }
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login_or_register',
+                                (route) => false,
+                              );
+                            }
                             return;
                           }
                           rethrow;
@@ -994,7 +999,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+          SnackBar(
+            content: Text("Upload encountered an anomaly: ${e.toString()}"),
+          ),
         );
       }
     } finally {
@@ -1156,7 +1163,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+                          SnackBar(
+                            content: Text(
+                              "Upload encountered an anomaly: ${e.toString()}",
+                            ),
+                          ),
                         );
                       }
                     } finally {
@@ -1210,7 +1221,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     if (user == null) return;
 
     // Wired explicitly to your custom case-sensitive subscription tags
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
     final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
 
     if (!mounted) return;
@@ -1223,7 +1237,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         builder: (context) => const PaywallSheet(),
       );
-      return; 
+      return;
     }
 
     showGeneralDialog(
@@ -2041,8 +2055,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                     'accountTier': 'Infinite Brain',
                                   }, SetOptions(merge: true));
                               if (context.mounted) {
-                                Navigator.of(context).pop(); 
-                                Navigator.of(context).pop(); 
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop();
                                 UIUtils.showFloatingSnackBar(
                                   context,
                                   'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.',

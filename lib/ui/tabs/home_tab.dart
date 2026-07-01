@@ -661,17 +661,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             .doc();
         try {
           await docRef.set({
-          'fileName': fileName,
-          'fileUrl': mediaUrl,
-          'fileType': ext,
-          'uploadedAt': FieldValue.serverTimestamp(),
-          'aiSummary': 'Processing data...',
-        });
+            'fileName': fileName,
+            'fileUrl': mediaUrl,
+            'fileType': ext,
+            'uploadedAt': FieldValue.serverTimestamp(),
+            'aiSummary': 'Processing data...',
+          });
         } on FirebaseException catch (e) {
           if (e.code == 'permission-denied') {
-            debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+            debugPrint(
+              "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
+            );
             await FirebaseAuth.instance.signOut();
-            if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+            if (mounted)
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
             return;
           }
           rethrow;
@@ -685,7 +690,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           );
           successCount++;
         } catch (e) {
-          debugPrint("❌ UPLOAD BATCH ERROR: Failed to process asset $fileName. Reason: $e");
+          debugPrint(
+            "❌ UPLOAD BATCH ERROR: Failed to process asset $fileName. Reason: $e",
+          );
           if (e.toString().contains('429')) {
             if (mounted) {
               UIUtils.showFloatingSnackBar(
@@ -788,17 +795,22 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           .doc();
       try {
         await docRef.set({
-        'fileName': 'Camera Capture',
-        'fileUrl': mediaUrl,
-        'fileType': ext,
-        'uploadedAt': FieldValue.serverTimestamp(),
-        'aiSummary': 'Processing image data...',
-      });
+          'fileName': 'Camera Capture',
+          'fileUrl': mediaUrl,
+          'fileType': ext,
+          'uploadedAt': FieldValue.serverTimestamp(),
+          'aiSummary': 'Processing image data...',
+        });
       } on FirebaseException catch (e) {
         if (e.code == 'permission-denied') {
-          debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+          debugPrint(
+            "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
+          );
           await FirebaseAuth.instance.signOut();
-          if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+          if (mounted)
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
           return;
         }
         rethrow;
@@ -904,17 +916,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             .doc();
                         try {
                           await docRef.set({
-                          'fileName': 'Voice Note',
-                          'fileUrl': mediaUrl,
-                          'fileType': 'm4a',
-                          'uploadedAt': FieldValue.serverTimestamp(),
-                          'aiSummary': 'Transcribing audio...',
-                        });
+                            'fileName': 'Voice Note',
+                            'fileUrl': mediaUrl,
+                            'fileType': 'm4a',
+                            'uploadedAt': FieldValue.serverTimestamp(),
+                            'aiSummary': 'Transcribing audio...',
+                          });
                         } on FirebaseException catch (e) {
                           if (e.code == 'permission-denied') {
-                            debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+                            debugPrint(
+                              "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
+                            );
                             await FirebaseAuth.instance.signOut();
-                            if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+                            if (mounted)
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login_or_register',
+                                (route) => false,
+                              );
                             return;
                           }
                           rethrow;
@@ -1082,17 +1100,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       final genTitle = await _generateTitleFromText(rawText);
                       try {
                         await docRef.set({
-                        'fileName': genTitle,
-                        'fileUrl': '',
-                        'fileType': 'text',
-                        'uploadedAt': FieldValue.serverTimestamp(),
-                        'aiSummary': rawText,
-                      });
+                          'fileName': genTitle,
+                          'fileUrl': '',
+                          'fileType': 'text',
+                          'uploadedAt': FieldValue.serverTimestamp(),
+                          'aiSummary': rawText,
+                        });
                       } on FirebaseException catch (e) {
                         if (e.code == 'permission-denied') {
-                          debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+                          debugPrint(
+                            "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
+                          );
                           await FirebaseAuth.instance.signOut();
-                          if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+                          if (mounted)
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login_or_register',
+                              (route) => false,
+                            );
                           return;
                         }
                         rethrow;
@@ -1290,8 +1314,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       height: 28,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
-                        debugPrint("❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error");
-                        return const Icon(Icons.psychology, size: 28, color: Colors.blue);
+                        debugPrint(
+                          "❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error",
+                        );
+                        return const Icon(
+                          Icons.psychology,
+                          size: 28,
+                          color: Colors.blue,
+                        );
                       },
                     ),
                   ),
@@ -1377,7 +1407,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Axiom v1.1.4",
+                                "Welcome to Axiom v1.1.5",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(
@@ -1425,19 +1455,25 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             .snapshots()
                       : null,
                   builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.active &&
-                          !snapshot.hasError &&
-                          (!snapshot.hasData || !snapshot.data!.exists)) {
-                        debugPrint("⚠️ Profile missing for active Auth UID. Executing auto-healing initial profile creation...");
-                        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).set({
-                          'uid': FirebaseAuth.instance.currentUser!.uid,
-                          'email': FirebaseAuth.instance.currentUser!.email ?? '',
-                          'accountTier': 'Free',
-                          'aiUsageCount': 0,
-                          'createdAt': FieldValue.serverTimestamp(),
-                        }, SetOptions(merge: true));
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                    if (snapshot.connectionState == ConnectionState.active &&
+                        !snapshot.hasError &&
+                        (!snapshot.hasData || !snapshot.data!.exists)) {
+                      debugPrint(
+                        "⚠️ Profile missing for active Auth UID. Executing auto-healing initial profile creation...",
+                      );
+                      FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(FirebaseAuth.instance.currentUser!.uid)
+                          .set({
+                            'uid': FirebaseAuth.instance.currentUser!.uid,
+                            'email':
+                                FirebaseAuth.instance.currentUser!.email ?? '',
+                            'accountTier': 'Free',
+                            'aiUsageCount': 0,
+                            'createdAt': FieldValue.serverTimestamp(),
+                          }, SetOptions(merge: true));
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
                     String? name;
                     if (snapshot.hasData && snapshot.data!.exists) {

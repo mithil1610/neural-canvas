@@ -1248,7 +1248,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       debugPrint("❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error");
-                      return const Icon(Icons.brain, size: 28, color: Colors.blue);
+                      return const Icon(Icons.psychology, size: 28, color: Colors.blue);
                     },
                   ),
                   const SizedBox(width: 10),

@@ -160,10 +160,18 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
                           return;
                         }
-                        if (defaultOffering.monthly != null) {
-                          await Purchases.purchasePackage(
-                              defaultOffering.monthly!);
+                        Package? creationPackage;
+                        for (var pkg in defaultOffering.availablePackages) {
+                          if (pkg.storeProduct.identifier == 'axiom_creation_engine_monthly') {
+                            creationPackage = pkg;
+                            break;
+                          }
+                        }
+                        if (creationPackage != null) {
+                          await Purchases.purchasePackage(creationPackage);
                           if (context.mounted) Navigator.pop(context);
+                        } else {
+                          debugPrint("❌ Product mapping failure: axiom_creation_engine_monthly not found in packages.");
                         }
                       } catch (e) {
                         debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");
@@ -206,17 +214,18 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
                           return;
                         }
-                        Package? targetPackage;
+                        Package? infinitePackage;
                         for (var pkg in defaultOffering.availablePackages) {
-                          if (pkg.identifier == 'infinite_monthly' ||
-                              pkg.identifier == 'infinite_yearly') {
-                            targetPackage = pkg;
+                          if (pkg.storeProduct.identifier == 'axiom_infinite_brain_monthly') {
+                            infinitePackage = pkg;
                             break;
                           }
                         }
-                        if (targetPackage != null) {
-                          await Purchases.purchasePackage(targetPackage);
+                        if (infinitePackage != null) {
+                          await Purchases.purchasePackage(infinitePackage);
                           if (context.mounted) Navigator.pop(context);
+                        } else {
+                          debugPrint("❌ Product mapping failure: axiom_infinite_brain_monthly not found in packages.");
                         }
                       } catch (e) {
                         debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");

@@ -88,7 +88,7 @@ class AuthService {
     }
   }
 
-    static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
+  static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     final uid = userId ?? user.uid;
@@ -140,55 +140,6 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      return false;
-    }
-  });
-      }
-
-      if (accountTier == 'Free') {
-        if (aiUsageCount >= 10) {
-          if (context.mounted) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => const PaywallSheet(),
-            );
-          }
-          return false;
-        }
-      } else if (accountTier == 'Creation Engine' || accountTier == 'Infinite Brain') {
-        // Bypass limits completely
-      } else if (accountTier == 'Enterprise Nexus') {
-        // Bypass limits and append indicator
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Enterprise Nexus Clearance Active: Limits Bypassed'),
-              backgroundColor: Colors.blueAccent,
-            ),
-          );
-        }
-      }
-
-      final batch = FirebaseFirestore.instance.batch();
-      batch.update(userDoc.reference, {'aiUsageCount': FieldValue.increment(1)});
-      await batch.commit();
-
-      return true;
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        debugPrint("⚠️ Security breach or ghost account detected. Forcing local sign-out.");
-        await FirebaseAuth.instance.signOut();
-        if (context.mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
-        }
-        return false;
-      }
-      if (kDebugMode) debugPrint("Error checking daily quota: $e");
-      return false;
-    } catch (e) {
-      if (kDebugMode) debugPrint("Error checking daily quota: $e");
       return false;
     }
   }

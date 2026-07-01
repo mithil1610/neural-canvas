@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,11 +12,12 @@ class PaywallSheet extends StatefulWidget {
 
 class _PaywallSheetState extends State<PaywallSheet> {
   bool isProcessing = false;
+  bool isAnnualBilling = false; // Controls sliding state matrix toggle
 
   Widget _buildPricingCard({
     required String title,
     required String price,
-    required String annualPrice,
+    required String billingPeriodText,
     required Color color,
     bool isPopular = false,
     VoidCallback? onTap,
@@ -39,29 +40,42 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 color: color,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text("MOST POPULAR",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1)),
+              child: const Text(
+                "MOST POPULAR",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
             ),
-          Text(title,
-              style: TextStyle(
-                  color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(price,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                price,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(width: 8),
-              Text(annualPrice,
-                  style: const TextStyle(color: Colors.white54, fontSize: 14)),
+              Text(
+                billingPeriodText,
+                style: const TextStyle(color: Colors.white54, fontSize: 14),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -77,8 +91,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text("Upgrade Now",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Upgrade Now",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -108,7 +124,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           const Text(
             "Elevate Your Mind",
             style: TextStyle(
@@ -120,14 +136,107 @@ class _PaywallSheetState extends State<PaywallSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Unlock Visual Lookbook and Cinematic Reels by upgrading to Infinite Brain.",
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              height: 1.5,
+            "Unlock Visual Lookbook and Cinematic Reels by upgrading to your Second Brain ecosystem tiers.",
+            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+
+          // Sliding Toggle Mechanism supporting all 4 App Store items
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() => isAnnualBilling = false);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !isAnnualBilling
+                            ? const Color(0xFF1E293B)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "Monthly",
+                        style: TextStyle(
+                          color: !isAnnualBilling
+                              ? Colors.white
+                              : Colors.white54,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() => isAnnualBilling = true);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isAnnualBilling
+                            ? const Color(0xFFA78BFA)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            "Annual",
+                            style: TextStyle(
+                              color: isAnnualBilling
+                                  ? Colors.black
+                                  : Colors.white54,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              "SAVE",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
           if (isProcessing)
             const Expanded(
               child: Center(
@@ -141,117 +250,147 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 children: [
                   _buildPricingCard(
                     title: "Creation Engine",
-                    price: "\$19.99/mo",
-                    annualPrice: "or \$200/yr",
+                    price: isAnnualBilling ? "\$16.66/mo" : "\$19.99/mo",
+                    billingPeriodText: isAnnualBilling
+                        ? "billed annually (\$200/yr)"
+                        : "billed monthly",
                     color: const Color(0xFF3B82F6),
                     onTap: () async {
-                      setState(() {
-                        isProcessing = true;
-                      });
+                      setState(() => isProcessing = true);
                       try {
                         if (!await Purchases.isConfigured) {
-                          debugPrint("ℹ️ MOCK PURCHASE: RevenueCat is not configured on this platform. Simulating successful sandbox checkout UI.");
+                          debugPrint(
+                            "ℹ️ MOCK PURCHASE: Simulating checkout UI.",
+                          );
                           if (context.mounted) Navigator.pop(context);
                           return;
                         }
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
+                          debugPrint(
+                            "❌ CRITICAL: RevenueCat offering map is missing.",
+                          );
                           return;
                         }
-                        Package? creationPackage;
+
+                        final String targetProductId = isAnnualBilling
+                            ? 'axiom_creation_engine_yearly'
+                            : 'axiom_creation_engine_monthly';
+
+                        Package? targetPackage;
                         for (var pkg in defaultOffering.availablePackages) {
-                          if (pkg.storeProduct.identifier == 'axiom_creation_engine_monthly') {
-                            creationPackage = pkg;
+                          if (pkg.storeProduct.identifier == targetProductId) {
+                            targetPackage = pkg;
                             break;
                           }
                         }
-                        if (creationPackage != null) {
-                          await Purchases.purchase(PurchaseParams.package(creationPackage));
+
+                        if (targetPackage != null) {
+                          await Purchases.purchase(
+                            PurchaseParams.package(targetPackage),
+                          );
                           if (context.mounted) Navigator.pop(context);
                         } else {
-                          debugPrint("❌ Product mapping failure: axiom_creation_engine_monthly not found in packages.");
+                          throw Exception(
+                            "Product identifier '$targetProductId' not synced in offerings.",
+                          );
                         }
                       } catch (e) {
-                        debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");
+                        debugPrint("❌ STOREKIT RUNTIME EXCEPTION: $e");
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: Colors.redAccent,
-                              duration: const Duration(seconds: 5),
-                              content: Text("Apple StoreKit Alert: ${e.toString()}"),
+                              duration: const Duration(seconds: 6),
+                              content: Text(
+                                "Apple StoreKit Alert: ${e.toString()}",
+                              ),
                             ),
                           );
                         }
                       } finally {
-                        setState(() {
-                          isProcessing = false;
-                        });
+                        setState(() => isProcessing = false);
                       }
                     },
                   ),
                   const SizedBox(height: 16),
                   _buildPricingCard(
                     title: "Infinite Brain",
-                    price: "\$49.99/mo",
-                    annualPrice: "or \$450/yr",
+                    price: isAnnualBilling ? "\$37.50/mo" : "\$49.99/mo",
+                    billingPeriodText: isAnnualBilling
+                        ? "billed annually (\$450/yr)"
+                        : "billed monthly",
                     color: const Color(0xFFA78BFA),
                     isPopular: true,
                     onTap: () async {
-                      setState(() {
-                        isProcessing = true;
-                      });
+                      setState(() => isProcessing = true);
                       try {
                         if (!await Purchases.isConfigured) {
-                          debugPrint("ℹ️ MOCK PURCHASE: RevenueCat is not configured on this platform. Simulating successful sandbox checkout UI.");
+                          debugPrint(
+                            "ℹ️ MOCK PURCHASE: Simulating checkout UI.",
+                          );
                           if (context.mounted) Navigator.pop(context);
                           return;
                         }
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
+                          debugPrint(
+                            "❌ CRITICAL: RevenueCat offering map is missing.",
+                          );
                           return;
                         }
-                        Package? infinitePackage;
+
+                        final String targetProductId = isAnnualBilling
+                            ? 'axiom_infinite_brain_yearly'
+                            : 'axiom_infinite_brain_monthly';
+
+                        Package? targetPackage;
                         for (var pkg in defaultOffering.availablePackages) {
-                          if (pkg.storeProduct.identifier == 'axiom_infinite_brain_monthly') {
-                            infinitePackage = pkg;
+                          if (pkg.storeProduct.identifier == targetProductId) {
+                            targetPackage = pkg;
                             break;
                           }
                         }
-                        if (infinitePackage != null) {
-                          await Purchases.purchase(PurchaseParams.package(infinitePackage));
+
+                        if (targetPackage != null) {
+                          await Purchases.purchase(
+                            PurchaseParams.package(targetPackage),
+                          );
                           if (context.mounted) Navigator.pop(context);
                         } else {
-                          debugPrint("❌ Product mapping failure: axiom_infinite_brain_monthly not found in packages.");
+                          throw Exception(
+                            "Product identifier '$targetProductId' not synced in offerings.",
+                          );
                         }
                       } catch (e) {
-                        debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");
+                        debugPrint("❌ STOREKIT RUNTIME EXCEPTION: $e");
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: Colors.redAccent,
-                              duration: const Duration(seconds: 5),
-                              content: Text("Apple StoreKit Alert: ${e.toString()}"),
+                              duration: const Duration(seconds: 6),
+                              content: Text(
+                                "Apple StoreKit Alert: ${e.toString()}",
+                              ),
                             ),
                           );
                         }
                       } finally {
-                        setState(() {
-                          isProcessing = false;
-                        });
+                        setState(() => isProcessing = false);
                       }
                     },
                   ),
                   const SizedBox(height: 32),
                   GestureDetector(
                     onTap: () async {
-                      final Uri emailUri = Uri.parse('mailto:mithilpatel140@gmail.com?subject=Axiom%20Enterprise%20Nexus%20Inquiry');
-                        if (await canLaunchUrl(emailUri)) {
-                          await launchUrl(emailUri);
-                        }
+                      final Uri emailUri = Uri.parse(
+                        'mailto:mithilpatel140@gmail.com?subject=Axiom%20Enterprise%20Nexus%20Inquiry',
+                      );
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(emailUri);
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(24),
@@ -262,28 +401,40 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.business_center_outlined,
-                              color: Colors.white54, size: 32),
+                          Icon(
+                            Icons.business_center_outlined,
+                            color: Colors.white54,
+                            size: 32,
+                          ),
                           SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("Enterprise Nexus",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  "Enterprise Nexus",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 SizedBox(height: 4),
                                 Text(
-                                    "Contact us for custom scaling and deployment.",
-                                    style: TextStyle(
-                                        color: Colors.white54, fontSize: 14)),
+                                  "Contact us for custom scaling and deployment.",
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios,
-                              color: Colors.white38, size: 16),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white38,
+                            size: 16,
+                          ),
                         ],
                       ),
                     ),

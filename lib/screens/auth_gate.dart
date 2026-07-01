@@ -316,8 +316,7 @@ class _AuthGateState extends State<AuthGate> {
                                 ),
                               ),
                               const TextSpan(
-                                text:
-                                    '3. Service Limitations & Availability\n',
+                                text: '3. Service Limitations & Availability\n',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontWeight: FontWeight.bold,
@@ -430,6 +429,11 @@ class _AuthGateState extends State<AuthGate> {
                 'email': _emailController.text.trim(),
                 'accountTier': 'Free',
                 'aiUsageCount': 0,
+                'dailyUploadCount':
+                    0, // Explicitly initialize daily metrics array field
+                'lastUploadDate': DateTime.now().toIso8601String().split(
+                  'T',
+                )[0], // Locks starting sync signature
                 'createdAt': FieldValue.serverTimestamp(),
                 'lastLoginAt': FieldValue.serverTimestamp(),
                 'legalCompliance': {

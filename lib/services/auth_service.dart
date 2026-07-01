@@ -6,6 +6,7 @@ import 'dart:ui';
 import '../ui/modals/paywall_sheet.dart';
 
 class AuthService {
+  // 📈 TRACKS TOTAL MONTHLY COMPUTE STORAGE
   static Future<bool> checkAndIncrementUsage(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
@@ -47,7 +48,7 @@ class AuthService {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   content: const Text(
-                    "You've used your monthly processing capacity. Your Second Brain capacity will reset next month!",
+                    "You've reached your structural monthly capacity pool allocation threshold metrics. Your Second Brain values will refresh next month!",
                     style: TextStyle(color: Colors.white70),
                   ),
                   actions: [
@@ -73,22 +74,28 @@ class AuthService {
       return true;
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
-        debugPrint("⚠️ Security breach or ghost account detected. Forcing local sign-out.");
+        debugPrint(
+          "⚠️ Security breach or ghost account detected. Forcing local sign-out.",
+        );
         await FirebaseAuth.instance.signOut();
         if (context.mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
         }
         return false;
       }
-      if (kDebugMode) debugPrint("Error checking usage: $e");
       return false;
     } catch (e) {
-      if (kDebugMode) debugPrint("Error checking usage: $e");
       return false;
     }
   }
 
-  static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
+  // 🛑 TRACKS STRICT DAILY UPLOAD FLIGHT CEILINGS (ISOLATED FIELD PROFILES)
+  static Future<bool> checkUserUploadQuota(
+    BuildContext context, [
+    String? userId,
+  ]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     final uid = userId ?? user.uid;
@@ -126,7 +133,9 @@ class AuthService {
       }
 
       final batch = FirebaseFirestore.instance.batch();
-      batch.update(userDoc.reference, {'dailyUploadCount': FieldValue.increment(1)});
+      batch.update(userDoc.reference, {
+        'dailyUploadCount': FieldValue.increment(1),
+      });
       await batch.commit();
 
       return true;
@@ -134,7 +143,9 @@ class AuthService {
       if (e.code == 'permission-denied') {
         await FirebaseAuth.instance.signOut();
         if (context.mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
         }
         return false;
       }
@@ -144,12 +155,13 @@ class AuthService {
     }
   }
 
+  // Fixed cross-write tracking anomalies
   static Future<void> incrementDailyUploadQuota() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'aiUsageCount': FieldValue.increment(1)},
+        {'dailyUploadCount': FieldValue.increment(1)},
       );
     } catch (e) {
       if (kDebugMode) debugPrint("Error incrementing daily quota: $e");

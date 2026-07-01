@@ -149,6 +149,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         isProcessing = true;
                       });
                       try {
+                        if (!await Purchases.isConfigured) {
+                          debugPrint("ℹ️ MOCK PURCHASE: RevenueCat is not configured on this platform. Simulating successful sandbox checkout UI.");
+                          if (context.mounted) Navigator.pop(context);
+                          return;
+                        }
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
@@ -181,6 +186,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         isProcessing = true;
                       });
                       try {
+                        if (!await Purchases.isConfigured) {
+                          debugPrint("ℹ️ MOCK PURCHASE: RevenueCat is not configured on this platform. Simulating successful sandbox checkout UI.");
+                          if (context.mounted) Navigator.pop(context);
+                          return;
+                        }
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {

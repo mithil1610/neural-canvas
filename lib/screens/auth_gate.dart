@@ -473,8 +473,8 @@ class _AuthGateState extends State<AuthGate> {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // If the user is logged in, show the Dashboard Shell
-        if (snapshot.hasData) {
+        // If the user is logged in and we are not currently loading/registering, show the Dashboard Shell
+        if (snapshot.hasData && !_isLoading) {
           return const MainShell();
         }
 

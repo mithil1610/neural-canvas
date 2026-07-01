@@ -71,6 +71,17 @@ class AuthService {
         'aiUsageCount': FieldValue.increment(1),
       });
       return true;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        debugPrint("⚠️ Security breach or ghost account detected. Forcing local sign-out.");
+        await FirebaseAuth.instance.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+        }
+        return false;
+      }
+      if (kDebugMode) debugPrint("Error checking usage: $e");
+      return false;
     } catch (e) {
       if (kDebugMode) debugPrint("Error checking usage: $e");
       return false;
@@ -131,6 +142,17 @@ class AuthService {
       await batch.commit();
 
       return true;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        debugPrint("⚠️ Security breach or ghost account detected. Forcing local sign-out.");
+        await FirebaseAuth.instance.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+        }
+        return false;
+      }
+      if (kDebugMode) debugPrint("Error checking daily quota: $e");
+      return false;
     } catch (e) {
       if (kDebugMode) debugPrint("Error checking daily quota: $e");
       return false;

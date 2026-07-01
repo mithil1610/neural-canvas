@@ -151,13 +151,17 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       try {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
-                        if (defaultOffering?.monthly != null) {
+                        if (defaultOffering == null) {
+                          debugPrint("❌ CRITICAL: RevenueCat 'current' offering is returning NULL. Check offering identifiers.");
+                          return;
+                        }
+                        if (defaultOffering.monthly != null) {
                           await Purchases.purchasePackage(
-                              defaultOffering!.monthly!);
+                              defaultOffering.monthly!);
                           if (context.mounted) Navigator.pop(context);
                         }
                       } catch (e) {
-                        if (kDebugMode) debugPrint("Purchase error: \$e");
+                        debugPrint("❌ REVENUECAT PURCHASE ERROR DETAILS: $e");
                       } finally {
                         setState(() {
                           isProcessing = false;
@@ -179,22 +183,24 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       try {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
-                        if (defaultOffering != null) {
-                          Package? targetPackage;
-                          for (var pkg in defaultOffering.availablePackages) {
-                            if (pkg.identifier == 'infinite_monthly' ||
-                                pkg.identifier == 'infinite_yearly') {
-                              targetPackage = pkg;
-                              break;
-                            }
-                          }
-                          if (targetPackage != null) {
-                            await Purchases.purchasePackage(targetPackage);
-                            if (context.mounted) Navigator.pop(context);
+                        if (defaultOffering == null) {
+                          debugPrint("❌ CRITICAL: RevenueCat 'current' offering is returning NULL. Check offering identifiers.");
+                          return;
+                        }
+                        Package? targetPackage;
+                        for (var pkg in defaultOffering.availablePackages) {
+                          if (pkg.identifier == 'infinite_monthly' ||
+                              pkg.identifier == 'infinite_yearly') {
+                            targetPackage = pkg;
+                            break;
                           }
                         }
+                        if (targetPackage != null) {
+                          await Purchases.purchasePackage(targetPackage);
+                          if (context.mounted) Navigator.pop(context);
+                        }
                       } catch (e) {
-                        if (kDebugMode) debugPrint("Purchase error: \$e");
+                        debugPrint("❌ REVENUECAT PURCHASE ERROR DETAILS: $e");
                       } finally {
                         setState(() {
                           isProcessing = false;

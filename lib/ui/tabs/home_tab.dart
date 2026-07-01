@@ -1243,17 +1243,18 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 children: [
                   Image.asset(
                     'assets/icon/app_logo.png',
-                    width: 24,
-                    height: 24,
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      debugPrint("❌ LOGO LOADING ERROR: Check if asset file exists at path. Error: $error");
+                      return const SizedBox.shrink();
+                    },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   const Text(
                     'Axiom',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      letterSpacing: -0.5,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),

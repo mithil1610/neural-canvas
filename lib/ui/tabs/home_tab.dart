@@ -1247,8 +1247,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     height: 28,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      debugPrint("❌ LOGO LOADING ERROR: Check if asset file exists at path. Error: $error");
-                      return const SizedBox.shrink();
+                      debugPrint("❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error");
+                      return const Icon(Icons.brain, size: 28, color: Colors.blue);
                     },
                   ),
                   const SizedBox(width: 10),

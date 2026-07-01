@@ -152,7 +152,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint("❌ CRITICAL: RevenueCat 'current' offering is returning NULL. Check offering identifiers.");
+                          debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
                           return;
                         }
                         if (defaultOffering.monthly != null) {
@@ -161,7 +161,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           if (context.mounted) Navigator.pop(context);
                         }
                       } catch (e) {
-                        debugPrint("❌ REVENUECAT PURCHASE ERROR DETAILS: $e");
+                        debugPrint("❌ REVENUECAT TRANSACTION FAILED: $e");
                       } finally {
                         setState(() {
                           isProcessing = false;
@@ -184,7 +184,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint("❌ CRITICAL: RevenueCat 'current' offering is returning NULL. Check offering identifiers.");
+                          debugPrint("❌ CRITICAL DIAGNOSTIC: RevenueCat 'current' offering is NULL. Check your offering setup in the dashboard.");
                           return;
                         }
                         Package? targetPackage;
@@ -200,7 +200,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           if (context.mounted) Navigator.pop(context);
                         }
                       } catch (e) {
-                        debugPrint("❌ REVENUECAT PURCHASE ERROR DETAILS: $e");
+                        debugPrint("❌ REVENUECAT TRANSACTION FAILED: $e");
                       } finally {
                         setState(() {
                           isProcessing = false;

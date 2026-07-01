@@ -168,7 +168,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           }
                         }
                         if (creationPackage != null) {
-                          await Purchases.purchasePackage(creationPackage);
+                          await Purchases.purchase(PurchaseParams.package(creationPackage));
                           if (context.mounted) Navigator.pop(context);
                         } else {
                           debugPrint("❌ Product mapping failure: axiom_creation_engine_monthly not found in packages.");
@@ -222,7 +222,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           }
                         }
                         if (infinitePackage != null) {
-                          await Purchases.purchasePackage(infinitePackage);
+                          await Purchases.purchase(PurchaseParams.package(infinitePackage));
                           if (context.mounted) Navigator.pop(context);
                         } else {
                           debugPrint("❌ Product mapping failure: axiom_infinite_brain_monthly not found in packages.");

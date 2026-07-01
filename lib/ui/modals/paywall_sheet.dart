@@ -166,7 +166,16 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           if (context.mounted) Navigator.pop(context);
                         }
                       } catch (e) {
-                        debugPrint("❌ REVENUECAT TRANSACTION FAILED: $e");
+                        debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              duration: const Duration(seconds: 5),
+                              content: Text("Apple StoreKit Alert: ${e.toString()}"),
+                            ),
+                          );
+                        }
                       } finally {
                         setState(() {
                           isProcessing = false;
@@ -210,7 +219,16 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           if (context.mounted) Navigator.pop(context);
                         }
                       } catch (e) {
-                        debugPrint("❌ REVENUECAT TRANSACTION FAILED: $e");
+                        debugPrint("❌ TESTFLIGHT SUBSCRIPTION ERROR: $e");
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              duration: const Duration(seconds: 5),
+                              content: Text("Apple StoreKit Alert: ${e.toString()}"),
+                            ),
+                          );
+                        }
                       } finally {
                         setState(() {
                           isProcessing = false;
@@ -221,16 +239,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   const SizedBox(height: 32),
                   GestureDetector(
                     onTap: () async {
-                      final Uri emailUri = Uri(
-                        scheme: 'mailto',
-                        path: 'connect@axiom.ai',
-                        queryParameters: {
-                          'subject': 'Enterprise Nexus Inquiry'
-                        },
-                      );
-                      if (await canLaunchUrl(emailUri)) {
-                        await launchUrl(emailUri);
-                      }
+                      final Uri emailUri = Uri.parse('mailto:mithilpatel140@gmail.com?subject=Axiom%20Enterprise%20Nexus%20Inquiry');
+                        if (await canLaunchUrl(emailUri)) {
+                          await launchUrl(emailUri);
+                        }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(24),

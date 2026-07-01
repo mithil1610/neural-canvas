@@ -88,7 +88,7 @@ class AuthService {
     }
   }
 
-  static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
+    static Future<bool> checkUserUploadQuota(BuildContext context, [String? userId]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     final uid = userId ?? user.uid;
@@ -98,17 +98,51 @@ class AuthService {
       final userDoc = await userRef.get();
       final data = userDoc.data() ?? {};
       final String accountTier = data['accountTier'] ?? 'Free';
-      int aiUsageCount = data['aiUsageCount'] ?? 0;
+      int dailyUploadCount = data['dailyUploadCount'] ?? 0;
       final String lastUploadDate = data['lastUploadDate'] ?? '';
 
       final String todayDate = DateTime.now().toIso8601String().split('T')[0];
 
       if (lastUploadDate != todayDate) {
-        aiUsageCount = 0;
+        dailyUploadCount = 0;
         await userRef.update({
-          'aiUsageCount': 0,
+          'dailyUploadCount': 0,
           'lastUploadDate': todayDate,
         });
+      }
+
+      if (accountTier == 'Free') {
+        if (dailyUploadCount >= 10) {
+          if (context.mounted) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const PaywallSheet(),
+            );
+          }
+          return false;
+        }
+      }
+
+      final batch = FirebaseFirestore.instance.batch();
+      batch.update(userDoc.reference, {'dailyUploadCount': FieldValue.increment(1)});
+      await batch.commit();
+
+      return true;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        await FirebaseAuth.instance.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+        }
+        return false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  });
       }
 
       if (accountTier == 'Free') {

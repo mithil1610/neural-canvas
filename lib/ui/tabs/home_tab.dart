@@ -1242,15 +1242,18 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/icon/app_logo.png',
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      debugPrint("❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error");
-                      return const Icon(Icons.psychology, size: 28, color: Colors.blue);
-                    },
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/icon/app_logo.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint("❌ CRITICAL: Logo asset failed to load from path 'assets/icon/app_logo.png'. Error: $error");
+                        return const Icon(Icons.psychology, size: 28, color: Colors.blue);
+                      },
+                    ),
                   ),
                   const SizedBox(width: 10),
                   const Text(
@@ -1334,7 +1337,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Axiom v1.1.2",
+                                "Welcome to Axiom v1.1.4",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(
@@ -1382,6 +1385,18 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             .snapshots()
                       : null,
                   builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.active &&
+                          !snapshot.hasError &&
+                          (!snapshot.hasData || !snapshot.data!.exists)) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          await FirebaseAuth.instance.signOut();
+                          if (context.mounted) {
+                            Navigator.of(context).pushReplacementNamed('/login_or_register');
+                          }
+                        });
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
                     String? name;
                     if (snapshot.hasData && snapshot.data!.exists) {
                       final data =

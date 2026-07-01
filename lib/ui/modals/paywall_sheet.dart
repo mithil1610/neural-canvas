@@ -268,10 +268,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint(
-                            "❌ CRITICAL: RevenueCat offering map is missing.",
-                          );
-                          return;
+                          throw Exception("RevenueCat 'Current Offering' is null. Ensure your main paywall structure toggle is checked 'Set as Current' inside your web catalog console dashboard.");
                         }
 
                         final String targetProductId = isAnnualBilling
@@ -356,10 +353,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         Offerings offerings = await Purchases.getOfferings();
                         Offering? defaultOffering = offerings.current;
                         if (defaultOffering == null) {
-                          debugPrint(
-                            "❌ CRITICAL: RevenueCat offering map is missing.",
-                          );
-                          return;
+                          throw Exception("RevenueCat 'Current Offering' is null. Ensure your main paywall structure toggle is checked 'Set as Current' inside your web catalog console dashboard.");
                         }
 
                         final String targetProductId = isAnnualBilling

@@ -605,7 +605,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      bool isPremium = await UserService.isUserPremium(user.uid);
+      // Fixed Tier Alignment Check for Upload Ceiling Quotas
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
+      bool isPremium = (accountTier == 'Creation Engine' || accountTier == 'Infinite Brain');
 
       setState(() {
         activeLoadingAction = 'import';
@@ -673,10 +676,11 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
             );
             await FirebaseAuth.instance.signOut();
-            if (mounted)
+            if (mounted) {
               Navigator.of(
                 context,
               ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+            }
             return;
           }
           rethrow;
@@ -726,6 +730,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           }
         }
 
+        // Anti-429 Sequential loop pacing delay
         await Future.delayed(const Duration(milliseconds: 1500));
       }
 
@@ -744,7 +749,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       }
     } finally {
       if (mounted) {
-        setState(() => activeLoadingAction = null);
+        setState(() {
+          activeLoadingAction = null;
+        });
       }
     }
   }
@@ -810,16 +817,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
           );
           await FirebaseAuth.instance.signOut();
-          if (mounted)
+          if (mounted) {
+
             Navigator.of(
+
               context,
+
             ).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+
+          }
           return;
         }
         rethrow;
       }
-
-      // await AuthService.incrementDailyUploadQuota();
 
       AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
 
@@ -835,7 +845,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       }
     } finally {
       if (mounted) {
-        setState(() => activeLoadingAction = null);
+        setState(() {
+          activeLoadingAction = null;
+        });
       }
     }
   }
@@ -859,7 +871,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             '${appDocumentsDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
         await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc), // m4a/aac container
+          const RecordConfig(encoder: AudioEncoder.aacLc),
           path: filePath,
         );
         setState(() {
@@ -934,17 +946,16 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
                             );
                             await FirebaseAuth.instance.signOut();
-                            if (mounted)
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/login_or_register',
-                                (route) => false,
-                              );
+                            if (mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login_or_register',
+                              (route) => false,
+                            );
+                          }
                             return;
                           }
                           rethrow;
                         }
-
-                        // await AuthService.incrementDailyUploadQuota();
 
                         AssetAnalyzerService.analyzeIngestedAsset(
                           docRef.id,
@@ -959,7 +970,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         );
                       }
                       if (mounted) {
-                        setState(() => activeLoadingAction = null);
+                        setState(() {
+                          activeLoadingAction = null;
+                        });
                       }
                     },
                     child: const Text('Stop & Save'),
@@ -986,7 +999,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       }
     } finally {
       if (mounted) {
-        setState(() => activeLoadingAction = null);
+        setState(() {
+          activeLoadingAction = null;
+        });
       }
     }
   }
@@ -1118,17 +1133,16 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             "❌ Permission Denied on upload task. Local session data out of sync. Logging out.",
                           );
                           await FirebaseAuth.instance.signOut();
-                          if (mounted)
+                          if (mounted) {
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/login_or_register',
                               (route) => false,
                             );
+                          }
                           return;
                         }
                         rethrow;
                       }
-
-                      // await AuthService.incrementDailyUploadQuota();
 
                       if (mounted) {
                         UIUtils.showFloatingSnackBar(
@@ -1137,18 +1151,19 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         );
                       }
 
-                      // Fire off background enhancement
                       _enhanceTextNode(docRef, rawText);
                     } catch (e) {
                       debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
-        );
-      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+                        );
+                      }
                     } finally {
                       if (mounted) {
-                        setState(() => activeLoadingAction = null);
+                        setState(() {
+                          activeLoadingAction = null;
+                        });
                       }
                     }
                   },
@@ -1194,20 +1209,21 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Premium Check Lock: Wired to actual user subscription data via utility layer
-    bool isUserPremium = await UserService.isUserPremium(user.uid);
+    // Wired explicitly to your custom case-sensitive subscription tags
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
 
     if (!mounted) return;
 
-    if (!isUserPremium) {
-      // If the user's account flag is marked as a free account, present Paywall
+    if (accountTier == 'Free') {
+      // Free level accounts are strictly restricted from standard Generation pipelines
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) => const PaywallSheet(),
       );
-      return; // Stops the Generate engine from running
+      return; 
     }
 
     showGeneralDialog(
@@ -1447,7 +1463,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               ],
             ),
 
-            // --- Greeting ---
+            // --- Greeting & Auto-Healing Logic ---
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -1510,8 +1526,8 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             const SizedBox(width: 8),
                             Lottie.network(
                               DateTime.now().hour < 17
-                                  ? 'https://assets5.lottiefiles.com/packages/lf20_xlbhme96.json' // Day/Sun
-                                  : 'https://assets10.lottiefiles.com/packages/lf20_isb7clby.json', // Moon/Night
+                                  ? 'https://assets5.lottiefiles.com/packages/lf20_xlbhme96.json'
+                                  : 'https://assets10.lottiefiles.com/packages/lf20_isb7clby.json',
                               width: 32,
                               height: 32,
                               animate: true,
@@ -1539,7 +1555,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
               ),
             ),
 
-            // --- Quick Actions ---
+            // --- Quick Actions Grid ---
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
@@ -1571,7 +1587,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const SizedBox(); // Hide if no events
+                      return const SizedBox();
                     }
 
                     return Padding(
@@ -1849,20 +1865,13 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                   20,
                                   16,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      dynamicTitle,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const SizedBox(height: 12),
-                                  ],
+                                child: Text(
+                                  dynamicTitle,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
                               ),
                               buildAssetGrid(items),
@@ -1886,7 +1895,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           buildAssetGrid(groupB),
                         ],
 
-                        // Group C
+                        // Group C (Unprocessed Vault Safeguard)
                         if (groupC.isNotEmpty) ...[
                           const SizedBox(height: 32),
                           Padding(
@@ -2014,7 +2023,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           onPressed: () async {
                             final user = FirebaseAuth.instance.currentUser;
                             if (user != null) {
-                              // Simulate sandbox payment delay
                               showDialog(
                                 context: context,
                                 barrierDismissible: false,
@@ -2025,15 +2033,16 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               await Future.delayed(
                                 const Duration(milliseconds: 1500),
                               );
+                              // Fixed legacy database write path alignment
                               await FirebaseFirestore.instance
                                   .collection('users')
                                   .doc(user.uid)
                                   .set({
-                                    'accountTier': 'premium',
+                                    'accountTier': 'Infinite Brain',
                                   }, SetOptions(merge: true));
                               if (context.mounted) {
-                                Navigator.of(context).pop(); // pop loading
-                                Navigator.of(context).pop(); // pop overlay
+                                Navigator.of(context).pop(); 
+                                Navigator.of(context).pop(); 
                                 UIUtils.showFloatingSnackBar(
                                   context,
                                   'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.',

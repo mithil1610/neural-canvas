@@ -659,13 +659,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
             .doc(user.uid)
             .collection('knowledge_base')
             .doc();
-        await docRef.set({
+        try {
+          await docRef.set({
           'fileName': fileName,
           'fileUrl': mediaUrl,
           'fileType': ext,
           'uploadedAt': FieldValue.serverTimestamp(),
           'aiSummary': 'Processing data...',
         });
+        } on FirebaseException catch (e) {
+          if (e.code == 'permission-denied') {
+            debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+            await FirebaseAuth.instance.signOut();
+            if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+            return;
+          }
+          rethrow;
+        }
 
         try {
           await AssetAnalyzerService.analyzeIngestedAsset(
@@ -776,13 +786,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           .doc(user.uid)
           .collection('knowledge_base')
           .doc();
-      await docRef.set({
+      try {
+        await docRef.set({
         'fileName': 'Camera Capture',
         'fileUrl': mediaUrl,
         'fileType': ext,
         'uploadedAt': FieldValue.serverTimestamp(),
         'aiSummary': 'Processing image data...',
       });
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') {
+          debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+          await FirebaseAuth.instance.signOut();
+          if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+          return;
+        }
+        rethrow;
+      }
 
       // await AuthService.incrementDailyUploadQuota();
 
@@ -882,13 +902,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             .doc(user.uid)
                             .collection('knowledge_base')
                             .doc();
-                        await docRef.set({
+                        try {
+                          await docRef.set({
                           'fileName': 'Voice Note',
                           'fileUrl': mediaUrl,
                           'fileType': 'm4a',
                           'uploadedAt': FieldValue.serverTimestamp(),
                           'aiSummary': 'Transcribing audio...',
                         });
+                        } on FirebaseException catch (e) {
+                          if (e.code == 'permission-denied') {
+                            debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+                            await FirebaseAuth.instance.signOut();
+                            if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+                            return;
+                          }
+                          rethrow;
+                        }
 
                         // await AuthService.incrementDailyUploadQuota();
 
@@ -1050,13 +1080,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           .collection('knowledge_base')
                           .doc();
                       final genTitle = await _generateTitleFromText(rawText);
-                      await docRef.set({
+                      try {
+                        await docRef.set({
                         'fileName': genTitle,
                         'fileUrl': '',
                         'fileType': 'text',
                         'uploadedAt': FieldValue.serverTimestamp(),
                         'aiSummary': rawText,
                       });
+                      } on FirebaseException catch (e) {
+                        if (e.code == 'permission-denied') {
+                          debugPrint("❌ Permission Denied on upload task. Local session data out of sync. Logging out.");
+                          await FirebaseAuth.instance.signOut();
+                          if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login_or_register', (route) => false);
+                          return;
+                        }
+                        rethrow;
+                      }
 
                       // await AuthService.incrementDailyUploadQuota();
 
@@ -1388,12 +1428,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       if (snapshot.connectionState == ConnectionState.active &&
                           !snapshot.hasError &&
                           (!snapshot.hasData || !snapshot.data!.exists)) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) async {
-                          await FirebaseAuth.instance.signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushReplacementNamed('/login_or_register');
-                          }
-                        });
+                        debugPrint("⚠️ Profile missing for active Auth UID. Executing auto-healing initial profile creation...");
+                        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).set({
+                          'uid': FirebaseAuth.instance.currentUser!.uid,
+                          'email': FirebaseAuth.instance.currentUser!.email ?? '',
+                          'accountTier': 'Free',
+                          'aiUsageCount': 0,
+                          'createdAt': FieldValue.serverTimestamp(),
+                        }, SetOptions(merge: true));
                         return const Center(child: CircularProgressIndicator());
                       }
 

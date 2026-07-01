@@ -736,12 +736,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         );
       }
     } catch (e) {
-      if (mounted) UIUtils.showFloatingSnackBar(context, 'Import failed: $e');
+      debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+        );
+      }
     } finally {
       if (mounted) {
-        setState(() {
-          activeLoadingAction = null;
-        });
+        setState(() => activeLoadingAction = null);
       }
     }
   }
@@ -824,12 +827,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         UIUtils.showFloatingSnackBar(context, 'Scan successfully ingested!');
       }
     } catch (e) {
-      if (mounted) UIUtils.showFloatingSnackBar(context, 'Scan failed: $e');
+      debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+        );
+      }
     } finally {
       if (mounted) {
-        setState(() {
-          activeLoadingAction = null;
-        });
+        setState(() => activeLoadingAction = null);
       }
     }
   }
@@ -953,9 +959,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                         );
                       }
                       if (mounted) {
-                        setState(() {
-                          activeLoadingAction = null;
-                        });
+                        setState(() => activeLoadingAction = null);
                       }
                     },
                     child: const Text('Stop & Save'),
@@ -974,13 +978,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         }
       }
     } catch (e) {
+      debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
       if (mounted) {
-        setState(() {
-          activeLoadingAction = null;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+        );
       }
+    } finally {
       if (mounted) {
-        UIUtils.showFloatingSnackBar(context, 'Recording failed: $e');
+        setState(() => activeLoadingAction = null);
       }
     }
   }
@@ -1134,17 +1140,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                       // Fire off background enhancement
                       _enhanceTextNode(docRef, rawText);
                     } catch (e) {
-                      if (mounted) {
-                        UIUtils.showFloatingSnackBar(
-                          context,
-                          'Failed to save text: $e',
-                        );
-                      }
+                      debugPrint("❌ UPLOAD ENGINE FAILURE: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload encountered an anomaly: ${e.toString()}")),
+        );
+      }
                     } finally {
                       if (mounted) {
-                        setState(() {
-                          activeLoadingAction = null;
-                        });
+                        setState(() => activeLoadingAction = null);
                       }
                     }
                   },

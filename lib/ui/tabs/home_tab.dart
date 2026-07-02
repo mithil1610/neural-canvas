@@ -1020,13 +1020,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     }
     try {
 
-      if (_geminiApiKey.isEmpty) {
-        setState(() {
-          _generatedContent = "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
-          _isGenerating = false;
-        });
-        return;
-      }
       final model = GenerativeModel(
         model: 'gemini-1.5-flash',
         apiKey: geminiApiKey,
@@ -1209,13 +1202,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
 
     try {
 
-      if (_geminiApiKey.isEmpty) {
-        setState(() {
-          _generatedContent = "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
-          _isGenerating = false;
-        });
-        return;
-      }
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
         apiKey: geminiApiKey,

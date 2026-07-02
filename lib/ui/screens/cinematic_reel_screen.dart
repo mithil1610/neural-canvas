@@ -3,6 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+
 
 class CinematicReelScreen extends StatefulWidget {
   const CinematicReelScreen({Key? key}) : super(key: key);
@@ -17,13 +23,49 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
   List<DocumentSnapshot> _mediaDocs = [];
   bool _isLoading = true;
   Timer? _autoPlayTimer;
+  bool _isDownloading = false;
+  FlutterTts flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _fetchRecentMedia();
+    _initTts();
   }
+
+  Future<void> _initTts() async {
+    await flutterTts.setLanguage("en-US");
+    await flutterTts.setSpeechRate(0.5);
+  }
+
+  void _speakCurrentSummary() {
+    if (_mediaDocs.isEmpty) return;
+    final doc = _mediaDocs[_currentIndex];
+    final summary = doc['aiSummary'] as String? ?? '';
+    if (summary.isNotEmpty) {
+      final cleanText = summary.replaceAll(RegExp(r'[*_#]'), '');
+      flutterTts.speak(cleanText);
+    }
+  }
+
+  Future<void> _downloadMedia(String url) async {
+    setState(() => _isDownloading = true);
+    try {
+      final response = await http.get(Uri.parse(url));
+      final dir = await getTemporaryDirectory();
+      final ext = url.split('?').first.split('.').last;
+      final extToUse = (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'mp4') ? ext : 'jpg';
+      final file = File('${dir.path}/reel_export_${DateTime.now().millisecondsSinceEpoch}.$extToUse');
+      await file.writeAsBytes(response.bodyBytes);
+      await Share.shareXFiles([XFile(file.path)], text: 'Exported from Axiom');
+    } catch (e) {
+      debugPrint("Download error: $e");
+    } finally {
+      setState(() => _isDownloading = false);
+    }
+  }
+
 
   Future<void> _fetchRecentMedia() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -47,6 +89,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
 
       if (_mediaDocs.isNotEmpty) {
         _startAutoPlay();
+        _speakCurrentSummary();
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -70,6 +113,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
   void dispose() {
     _pageController.dispose();
     _autoPlayTimer?.cancel();
+    flutterTts.stop();
     super.dispose();
   }
 
@@ -113,6 +157,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
               setState(() {
                 _currentIndex = index;
               });
+              _speakCurrentSummary();
             },
             itemCount: _mediaDocs.length,
             itemBuilder: (context, index) {
@@ -161,9 +206,33 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
           Positioned(
             top: 50,
             left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () => Navigator.pop(context),
+            right: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                if (_isDownloading)
+                  const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    ),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.download, color: Colors.white, size: 30),
+                    onPressed: () {
+                      final doc = _mediaDocs[_currentIndex];
+                      final url = doc['fileUrl'] as String?;
+                      if (url != null) _downloadMedia(url);
+                    },
+                  ),
+              ],
             ),
           ),
         ],

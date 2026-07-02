@@ -736,7 +736,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         }
 
         // Anti-429 Sequential loop pacing delay
-        await Future.delayed(const Duration(milliseconds: 1500));
+        await Future.delayed(const Duration(milliseconds: 2500));
       }
 
       if (mounted && successCount > 0) {
@@ -1019,6 +1019,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       return 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt';
     }
     try {
+
+      if (_geminiApiKey.isEmpty) {
+        setState(() {
+          _generatedContent = "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
+          _isGenerating = false;
+        });
+        return;
+      }
       final model = GenerativeModel(
         model: 'gemini-1.5-flash',
         apiKey: geminiApiKey,
@@ -1200,6 +1208,14 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     if (geminiApiKey.isEmpty) return;
 
     try {
+
+      if (_geminiApiKey.isEmpty) {
+        setState(() {
+          _generatedContent = "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
+          _isGenerating = false;
+        });
+        return;
+      }
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
         apiKey: geminiApiKey,
@@ -1441,7 +1457,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Axiom v1.1.7",
+                                "Welcome to Axiom v1.1.8",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(
@@ -2112,7 +2128,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     .get();
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
 
-                if (accountTier != 'Infinite Brain') {
+                if (accountTier == 'Free') {
                   if (context.mounted) {
                     showModalBottomSheet(
                       context: context,
@@ -2177,7 +2193,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                     .get();
                 final accountTier = userDoc.data()?['accountTier'] ?? 'Free';
 
-                if (accountTier != 'Infinite Brain') {
+                if (accountTier == 'Free') {
                   if (context.mounted) {
                     showModalBottomSheet(
                       context: context,
@@ -2252,7 +2268,10 @@ class _GenerateDialogState extends State<_GenerateDialog> {
 
   Future<void> _synthesizeMatrix() async {
     final prompt = _promptController.text.trim();
-    if (prompt.isEmpty) return;
+    if (prompt.isEmpty) {
+      UIUtils.showFloatingSnackBar(context, "Please input a synthesis prompt coordinate before execution.");
+      return;
+    }
 
     setState(() {
       _isGenerating = true;
@@ -2276,6 +2295,14 @@ class _GenerateDialogState extends State<_GenerateDialog> {
       final systemInstruction =
           "You are the Axiom Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
 
+
+      if (_geminiApiKey.isEmpty) {
+        setState(() {
+          _generatedContent = "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
+          _isGenerating = false;
+        });
+        return;
+      }
       final model = GenerativeModel(
         model: 'gemini-2.5-flash',
         apiKey: _geminiApiKey,

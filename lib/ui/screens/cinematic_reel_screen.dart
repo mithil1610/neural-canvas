@@ -153,7 +153,8 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
           PageView.builder(
             controller: _pageController,
             physics: const BouncingScrollPhysics(),
-            onPageChanged: (index) {
+            onPageChanged: (index) async {
+              await flutterTts.stop();
               setState(() {
                 _currentIndex = index;
               });

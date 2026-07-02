@@ -736,7 +736,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         }
 
         // Anti-429 Sequential loop pacing delay
-        await Future.delayed(const Duration(milliseconds: 2500));
+        await Future.delayed(const Duration(milliseconds: 4500));
       }
 
       if (mounted && successCount > 0) {
@@ -1443,7 +1443,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                                 color: Colors.blueAccent,
                               ),
                               title: Text(
-                                "Welcome to Axiom v1.1.9",
+                                "Welcome to Axiom v1.2.0",
                                 style: TextStyle(color: Colors.white),
                               ),
                               subtitle: Text(

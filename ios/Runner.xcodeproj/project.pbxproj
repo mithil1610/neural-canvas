@@ -65,6 +65,7 @@
 
 
 /* Begin PBXFileReference section */
+		1A2B3C4D5E6F7G8H9I0J1K2W /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareExtension/ShareViewController.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7G8H9I0J1K2M /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
@@ -316,6 +317,12 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807D294A63A400263BE5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -374,6 +381,8 @@
 		1A2B3C4D5E6F7G8H9I0J1K2Q /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
 				DEVELOPMENT_TEAM = RH3PSD6MLP;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -404,6 +413,8 @@
 		1A2B3C4D5E6F7G8H9I0J1K2R /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
 				DEVELOPMENT_TEAM = RH3PSD6MLP;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -434,6 +445,8 @@
 		1A2B3C4D5E6F7G8H9I0J1K2S /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
 				DEVELOPMENT_TEAM = RH3PSD6MLP;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

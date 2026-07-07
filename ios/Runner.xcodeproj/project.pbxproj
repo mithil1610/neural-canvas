@@ -8,6 +8,7 @@
 
 
 /* Begin PBXBuildFile section */
+		1A2B3C4D5E6F7G8H9I0J1K2V /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7G8H9I0J1K2W /* ShareViewController.swift */; };
 		1A2B3C4D5E6F7G8H9I0J1K2U /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7G8H9I0J1K2M /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -157,6 +158,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1A2B3C4D5E6F7G8H9I0J1K2P /* Build configuration list for PBXNativeTarget "ShareExtension" */;
 			buildPhases = (
+				1A2B3C4D5E6F7G8H9I0J1K2X /* Sources */,
 			);
 			buildRules = (
 			);
@@ -306,6 +308,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1A2B3C4D5E6F7G8H9I0J1K2X /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A2B3C4D5E6F7G8H9I0J1K2V /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807D294A63A400263BE5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;

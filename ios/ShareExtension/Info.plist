@@ -25,16 +25,20 @@
         <key>NSExtensionAttributes</key>
         <dict>
             <key>NSExtensionActivationRule</key>
-            <string>SUBQUERY (
-                extensionItems,
-                $extensionItem,
-                SUBQUERY ($extensionItem.attachments, $attachment,
-                    ANY $attachment.registeredTypeIdentifiers SUBTYPING "public.image"
-                    OR ANY $attachment.registeredTypeIdentifiers SUBTYPING "public.movie"
-                    OR ANY $attachment.registeredTypeIdentifiers SUBTYPING "public.file-url"
-                ).@count > 0
-            ).@count > 0</string>
+            <dict>
+                <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+                <integer>10</integer>
+                <key>NSExtensionActivationSupportsFileWithMaxCount</key>
+                <integer>10</integer>
+                <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+                <integer>1</integer>
+            </dict>
         </dict>
+        <key>NSExtensionMainStoryboard</key>
+        <string>MainInterface</string>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.share-services</string>
+    </dict>
         <key>NSExtensionMainStoryboard</key>
         <string>MainInterface</string>
         <key>NSExtensionPointIdentifier</key>

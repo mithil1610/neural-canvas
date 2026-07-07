@@ -272,11 +272,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final userDoc = snapshot.data![0] as DocumentSnapshot;
         final kbCount = (snapshot.data![1] as AggregateQuerySnapshot).count ?? 0;
-        final accountTier = userDoc.data() != null ? (userDoc.data() as Map<String, dynamic>)['accountTier'] ?? 'Free' : 'Free';
+        final data = userDoc.data() != null ? (userDoc.data() as Map<String, dynamic>) : {};
+        final accountTier = data['accountTier'] ?? 'Free';
+        final int usageCount = data['dailyUploadCount'] ?? 0;
+        final int totalUsage = data['aiUsageCount'] ?? 0;
 
         final isUnlimited = accountTier == 'Creation Engine' || accountTier == 'Infinite Brain';
         final limit = 10;
-        final progress = isUnlimited ? 1.0 : (kbCount / limit).clamp(0.0, 1.0);
+        final progress = isUnlimited ? 1.0 : (usageCount / limit).clamp(0.0, 1.0);
 
         return Container(
           padding: const EdgeInsets.all(24),
@@ -317,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    "$kbCount",
+                    "$usageCount",
                     style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, height: 1),
                   ),
                   const SizedBox(width: 8),
@@ -338,6 +341,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     isUnlimited ? const Color(0xFFA78BFA) : (progress >= 1.0 ? Colors.redAccent : Theme.of(context).colorScheme.primary),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Brain Synchronizations", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("$totalUsage", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Vault Assets", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("$kbCount", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                ],
               ),
             ],
           ),

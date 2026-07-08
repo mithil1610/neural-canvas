@@ -36,7 +36,7 @@ target 'Runner' do
     inherit! :search_paths
   end
   
-  # Properly nested share extension block to cleanly inherit the main engine environments
+  # Properly nested share extension block to cleanly inherit the main engine environments natively
   target 'ShareExtension' do
     inherit! :search_paths
   end
@@ -47,24 +47,8 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-      # Permits application extensions to compile shared code structures safely
+      # CRITICAL COMPILER OVERRIDE: Permits compilation of shared background plugin delegate hooks
       config.build_settings['APPLICATION_EXTENSION_API_ONLY'] = 'NO'
-      
-      # SAFE SEARCH PATH APPENDS:
-      # Prevents destructive overwrites of existing Firebase/RevenueCat search configurations
-      config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
-      if config.build_settings['HEADER_SEARCH_PATHS'].is_a?(String)
-        config.build_settings['HEADER_SEARCH_PATHS'] += ' "$(SRCROOT)/../Flutter"'
-      else
-        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
-      end
-
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
-      if config.build_settings['FRAMEWORK_SEARCH_PATHS'].is_a?(String)
-        config.build_settings['FRAMEWORK_SEARCH_PATHS'] += ' "$(SRCROOT)/../Flutter"'
-      else
-        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
-      end
     end
   end
 end

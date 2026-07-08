@@ -6,6 +6,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -156,12 +157,54 @@ class _MainShellState extends State<MainShell> {
     ShareReceiverService().initialize(navigatorKey);
     globalTabController.addListener(_onTabChanged);
 
+    // A. Listen for incoming files/images while the app is alive in background memory
+    ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
+      if (value.isNotEmpty) {
+        _handleIncomingSharedMedia(value);
+      }
+    }, onError: (err) {
+      print("Axiom Sharing Stream Error: $err");
+    });
+
+    // B. Check for files/images if the app was completely terminated and is now cold-launching
+    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+      if (value.isNotEmpty) {
+        _handleIncomingSharedMedia(value);
+      }
+    });
+
+    // C. Listen for plain text links/content while open
+    ReceiveSharingIntent.instance.getLinkStream().listen((String value) {
+      if (value.isNotEmpty) {
+        _handleIncomingSharedText(value);
+      }
+    });
+
+    // D. Intercept plain text content on a fresh cold-launch execution pass
+    ReceiveSharingIntent.instance.getInitialLink().then((String? value) {
+      if (value != null && value.isNotEmpty) {
+        _handleIncomingSharedText(value);
+      }
+    });
+
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;
       _navigateToHome();
     } else {
       _authenticateBiometrics();
     }
+  }
+
+  void _handleIncomingSharedMedia(List<SharedMediaFile> files) {
+    for (var media in files) {
+      print("Axiom Ingesting File Path: ${media.path}");
+      // TODO: Pass 'media.path' (or media.thumbnail) straight into your Asset Import state manager / upload routine.
+    }
+  }
+
+  void _handleIncomingSharedText(String text) {
+    print("Axiom Ingesting Shared Text: $text");
+    // TODO: Forward this text block directly into your active workspace scratchpad or call your paste-to-note controller.
   }
 
   void _navigateToHome() {

@@ -173,22 +173,6 @@ class _MainShellState extends State<MainShell> {
       }
     });
 
-    // C. Listen for plain text links/content while open in background memory
-    ReceiveSharingIntent.instance.getLinkStream().listen((String value) {
-      if (value.isNotEmpty) {
-        _handleIncomingSharedText(value);
-      }
-    }, onError: (err) {
-      if (kDebugMode) debugPrint("Axiom Text Sharing Stream Error: $err");
-    });
-
-    // D. Intercept plain text content on a fresh application cold-launch pass
-    ReceiveSharingIntent.instance.getInitialLink().then((String? value) {
-      if (value != null && value.isNotEmpty) {
-        _handleIncomingSharedText(value);
-      }
-    });
-
 
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;

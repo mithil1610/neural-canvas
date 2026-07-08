@@ -15,7 +15,7 @@ import 'package:neural_canvas/ui/tabs/graph_tab.dart';
 import 'package:neural_canvas/ui/tabs/home_tab.dart';
 import 'package:neural_canvas/ui/tabs/chat_tab.dart';
 import 'package:neural_canvas/screens/chat_history_screen.dart';
-import 'package:neural_canvas/services/share_receiver_service.dart';
+
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 import 'package:neural_canvas/services/notification_service.dart';

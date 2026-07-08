@@ -93,6 +93,12 @@ post_install do |installer|
             else
               config.build_settings['HEADER_SEARCH_PATHS'] << engine_headers_dir
             end
+            
+            if target.name == 'Runner'
+              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
+            elsif target.name == 'ShareExtension'
+              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'ShareExtension/ShareExtension.entitlements'
+            end
           end
         end
       end

@@ -35,11 +35,13 @@ target 'Runner' do
   target 'RunnerTests' do
     inherit! :search_paths
   end
-  
-  # Nested target configuration using uncorrupted CocoaPods mappings
-  target 'ShareExtension' do
-    inherit! :search_paths
-  end
+end
+
+# Standalone decoupled target architecture to natively compile separate framework header search directories
+target 'ShareExtension' do
+  use_frameworks!
+  use_modular_headers!
+  pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
 end
 
 post_install do |installer|
@@ -47,8 +49,13 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-      # CRITICAL COMPILER OVERRIDE: Permits application extensions to compile shared code structures
+      # Permits application extensions to compile shared code structures
       config.build_settings['APPLICATION_EXTENSION_API_ONLY'] = 'NO'
+      
+      # CRITICAL FIXED SEARCH PATH INJECTIONS:
+      # Explicitly force the framework and public headers directories into every compiled module target scope
+      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) "$(PROJECT_DIR)/Flutter" "${PODS_ROOT}/Headers/Public/Flutter"'
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) "$(PROJECT_DIR)/Flutter"'
     end
   end
 end

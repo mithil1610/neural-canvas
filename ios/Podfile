@@ -34,11 +34,16 @@ target 'Runner' do
   target 'RunnerTests' do
     inherit! :search_paths
   end
-  target 'ShareExtension' do
-    inherit! :search_paths
-  end
+  
 end
 
+
+
+target 'ShareExtension' do
+  use_frameworks!
+  use_modular_headers!
+  pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
+end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|

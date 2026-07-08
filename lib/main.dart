@@ -173,19 +173,7 @@ class _MainShellState extends State<MainShell> {
       }
     });
 
-    // C. Listen for plain text links/content while open
-    ReceiveSharingIntent.instance.getLinkStream().listen((String value) {
-      if (value.isNotEmpty) {
-        _handleIncomingSharedText(value);
-      }
-    });
 
-    // D. Intercept plain text content on a fresh cold-launch execution pass
-    ReceiveSharingIntent.instance.getInitialLink().then((String? value) {
-      if (value != null && value.isNotEmpty) {
-        _handleIncomingSharedText(value);
-      }
-    });
 
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;
@@ -197,8 +185,12 @@ class _MainShellState extends State<MainShell> {
 
   void _handleIncomingSharedMedia(List<SharedMediaFile> files) {
     for (var media in files) {
-      print("Axiom Ingesting File Path: ${media.path}");
-      // TODO: Pass 'media.path' (or media.thumbnail) straight into your Asset Import state manager / upload routine.
+      if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
+        _handleIncomingSharedText(media.path);
+      } else {
+        print("Axiom Ingesting File Path: ${media.path}");
+        // TODO: Pass 'media.path' (or media.thumbnail) straight into your Asset Import state manager / upload routine.
+      }
     }
   }
 

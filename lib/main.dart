@@ -183,20 +183,54 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _handleIncomingSharedMedia(List<SharedMediaFile> files) {
+  void _handleIncomingSharedMedia(List<SharedMediaFile> files) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     for (var media in files) {
       if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
         _handleIncomingSharedText(media.path);
       } else {
-        if (kDebugMode) debugPrint("Axiom Ingesting File Path: ${media.path}");
-        // TODO: Pass 'media.path' (or media.thumbnail) straight into your Asset Import state manager / upload routine.
+        // Active Ingestion: Write the shared image file reference path directly to the user's library collection
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('knowledge_base')
+              .add({
+                'title': 'Shared Image Asset',
+                'type': 'image',
+                'path': media.path,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+          if (kDebugMode) debugPrint("Axiom Successfully Imported Share Asset: ${media.path}");
+        } catch (e) {
+          if (kDebugMode) debugPrint("Failed to write share asset to Firestore: $e");
+        }
       }
     }
   }
 
-  void _handleIncomingSharedText(String text) {
-    if (kDebugMode) debugPrint("Axiom Ingesting Shared Text: $text");
-    // TODO: Forward this text block directly into your active workspace scratchpad or call your paste-to-note controller.
+  void _handleIncomingSharedText(String text) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Active Ingestion: Save incoming clipped text directly as a snippet note inside the database framework
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('knowledge_base')
+          .add({
+            'title': 'Shared Clip Note',
+            'type': 'text',
+            'content': text,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+      if (kDebugMode) debugPrint("Axiom Successfully Pasted Shared Text.");
+    } catch (e) {
+      if (kDebugMode) debugPrint("Failed to write share text to Firestore: $e");
+    }
   }
 
   void _navigateToHome() {

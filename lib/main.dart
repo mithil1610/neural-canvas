@@ -154,7 +154,7 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     // Begin listening for shared files the absolute second the app boots up
-    ShareReceiverService().initialize(navigatorKey);
+    // ShareReceiverService removed to prevent duplication
     globalTabController.addListener(_onTabChanged);
 
     // A. Listen for incoming files/images while the app is alive in background memory
@@ -310,7 +310,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     globalTabController.removeListener(_onTabChanged);
-    ShareReceiverService().dispose();
+    // Removed ShareReceiverService dispose
     super.dispose();
   }
 

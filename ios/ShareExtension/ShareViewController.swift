@@ -79,14 +79,11 @@ class ShareViewController: UIViewController {
             }
             
             // Wake up the host app
-            var responder: UIResponder? = self
-            while responder != nil {
-                if let application = responder as? UIApplication {
-                    let url = URL(string: "axiom://")!
-                    application.perform(NSSelectorFromString("openURL:"), with: url)
-                    break
-                }
-                responder = responder?.next
+            let url = URL(string: "axiom://")!
+            let context = self.extensionContext
+            let selectorOpenURL = sel_registerName("openURL:")
+            if let context = context, context.responds(to: selectorOpenURL) {
+                context.perform(selectorOpenURL, with: url)
             }
             
             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)

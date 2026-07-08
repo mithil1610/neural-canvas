@@ -36,7 +36,7 @@ target 'Runner' do
     inherit! :search_paths
   end
   
-  # Nested target configuration using uncorrupted CocoaPods mappings
+  # Properly nested share extension block to cleanly inherit the main engine environments
   target 'ShareExtension' do
     inherit! :search_paths
   end
@@ -50,10 +50,21 @@ post_install do |installer|
       # Permits application extensions to compile shared code structures safely
       config.build_settings['APPLICATION_EXTENSION_API_ONLY'] = 'NO'
       
-      # FIXED SEARCH PATH INJECTIONS:
-      # Using $(SRCROOT) ensures the compiler steps out of the Pods project to locate your true ios/Flutter directory
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) "$(SRCROOT)/../Flutter"'
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) "$(SRCROOT)/../Flutter"'
+      # SAFE SEARCH PATH APPENDS:
+      # Prevents destructive overwrites of existing Firebase/RevenueCat search configurations
+      config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+      if config.build_settings['HEADER_SEARCH_PATHS'].is_a?(String)
+        config.build_settings['HEADER_SEARCH_PATHS'] += ' "$(SRCROOT)/../Flutter"'
+      else
+        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
+      end
+
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+      if config.build_settings['FRAMEWORK_SEARCH_PATHS'].is_a?(String)
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] += ' "$(SRCROOT)/../Flutter"'
+      else
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
+      end
     end
   end
 end

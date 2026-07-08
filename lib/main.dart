@@ -163,7 +163,7 @@ class _MainShellState extends State<MainShell> {
         _handleIncomingSharedMedia(value);
       }
     }, onError: (err) {
-      print("Axiom Sharing Stream Error: $err");
+      if (kDebugMode) debugPrint("Axiom Sharing Stream Error: $err");
     });
 
     // B. Check for files/images if the app was completely terminated and is now cold-launching
@@ -188,14 +188,14 @@ class _MainShellState extends State<MainShell> {
       if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
         _handleIncomingSharedText(media.path);
       } else {
-        print("Axiom Ingesting File Path: ${media.path}");
+        if (kDebugMode) debugPrint("Axiom Ingesting File Path: ${media.path}");
         // TODO: Pass 'media.path' (or media.thumbnail) straight into your Asset Import state manager / upload routine.
       }
     }
   }
 
   void _handleIncomingSharedText(String text) {
-    print("Axiom Ingesting Shared Text: $text");
+    if (kDebugMode) debugPrint("Axiom Ingesting Shared Text: $text");
     // TODO: Forward this text block directly into your active workspace scratchpad or call your paste-to-note controller.
   }
 

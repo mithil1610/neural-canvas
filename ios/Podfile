@@ -35,13 +35,11 @@ target 'Runner' do
   target 'RunnerTests' do
     inherit! :search_paths
   end
-end
-
-# Standalone decoupled target architecture to natively compile separate framework header search directories
-target 'ShareExtension' do
-  use_frameworks!
-  use_modular_headers!
-  pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
+  
+  # Nested target configuration using uncorrupted CocoaPods mappings
+  target 'ShareExtension' do
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|

@@ -174,7 +174,6 @@ class _MainShellState extends State<MainShell> {
     });
 
 
-
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;
       _navigateToHome();

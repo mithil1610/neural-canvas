@@ -36,25 +36,70 @@ target 'Runner' do
     inherit! :search_paths
   end
   
-  # Properly nested share extension target block
   target 'ShareExtension' do
     inherit! :search_paths
   end
 end
 
 post_install do |installer|
+  # Compute the absolute paths directly from the stable cloud Flutter SDK installation
+  sdk_root = flutter_root
+  engine_framework_dir = File.join(sdk_root, 'bin', 'cache', 'artifacts', 'engine', 'ios', 'Flutter.xcframework', 'ios-arm64')
+  engine_headers_dir = File.join(engine_framework_dir, 'Flutter.framework', 'Headers')
+
+  # 1. Inject absolute pathways into all third-party Pod targets
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['APPLICATION_EXTENSION_API_ONLY'] = 'NO'
       
-      # TRANSLATED STEP 1: Programmatically turns off Explicit Module builds inside the cloud
-      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      # Hard-inject absolute SDK paths so Clang module scanning finds them unconditionally
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+      if config.build_settings['FRAMEWORK_SEARCH_PATHS'].is_a?(String)
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] += " \"#{engine_framework_dir}\""
+      else
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << engine_framework_dir
+      end
+
+      config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+      if config.build_settings['HEADER_SEARCH_PATHS'].is_a?(String)
+        config.build_settings['HEADER_SEARCH_PATHS'] += " \"#{engine_headers_dir}\""
+      else
+        config.build_settings['HEADER_SEARCH_PATHS'] << engine_headers_dir
+      end
     end
   end
-  
-  installer.pods_project.build_configurations.each do |config|
-    config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+
+  # 2. Inject absolute pathways directly into the main project target blueprints
+  begin
+    main_project_path = 'Runner.xcodeproj'
+    if File.exist?(main_project_path)
+      require 'xcodeproj'
+      project = Xcodeproj::Project.open(main_project_path)
+      project.targets.each do |target|
+        if target.name == 'ShareExtension' || target.name == 'Runner'
+          target.build_configurations.each do |config|
+            config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+            if config.build_settings['FRAMEWORK_SEARCH_PATHS'].is_a?(String)
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] += " \"#{engine_framework_dir}\""
+            else
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] << engine_framework_dir
+            end
+
+            config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+            if config.build_settings['HEADER_SEARCH_PATHS'].is_a?(String)
+              config.build_settings['HEADER_SEARCH_PATHS'] += " \"#{engine_headers_dir}\""
+            else
+              config.build_settings['HEADER_SEARCH_PATHS'] << engine_headers_dir
+            end
+          end
+        end
+      end
+      project.save
+      puts "Successfully synchronized absolute SDK paths to target blueprints."
+    end
+  rescue => e
+    puts "Project file sync bypassed: #{e.message}"
   end
 end

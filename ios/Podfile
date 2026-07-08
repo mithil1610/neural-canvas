@@ -43,34 +43,55 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  # 1. Parse the true engine framework path dynamically from Flutter's internal manifest
-  flutter_framework_dir = nil
-  generated_xcconfig = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-  if File.exist?(generated_xcconfig)
-    File.foreach(generated_xcconfig) do |line|
-      matches = line.match(/FLUTTER_FRAMEWORK_DIR\=(.*)/)
-      flutter_framework_dir = matches[1].strip if matches
-    end
-  end
-
+  # Step 1: Relax permissions for third-party plugin targets
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       # Permits application extensions to compile shared background delegate hooks safely
       config.build_settings['APPLICATION_EXTENSION_API_ONLY'] = 'NO'
-      
-      # 2. AUTOMATED DRAG-AND-DROP EMBED LINKAGE:
-      # Inject the direct binary pathways into the Clang environment scanner
-      if flutter_framework_dir
-        config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
-        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << "\"#{flutter_framework_dir}\""
-        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
-        
-        config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
-        config.build_settings['HEADER_SEARCH_PATHS'] << "\"#{flutter_framework_dir}/Flutter.xcframework/ios-arm64/Flutter.framework/Headers\""
-        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(SRCROOT)/../Flutter"'
-      end
     end
+  end
+
+  # Step 2: AUTOMATED DRAG-AND-DROP FIX
+  # Programmatically open the main project file and force-inject Flutter search paths into ShareExtension
+  begin
+    main_project_path = 'Runner.xcodeproj'
+    if File.exist?(main_project_path)
+      require 'xcodeproj'
+      project = Xcodeproj::Project.open(main_project_path)
+      
+      project.targets.each do |target|
+        if target.name == 'ShareExtension'
+          target.build_configurations.each do |config|
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+            
+            # Inject explicit framework tracking arrays without erasing existing configurations
+            f_paths = config.build_settings['FRAMEWORK_SEARCH_PATHS']
+            if f_paths.is_a?(String)
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] = [f_paths, '"$(PROJECT_DIR)/Flutter"']
+            elsif f_paths.is_a?(Array)
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '"$(PROJECT_DIR)/Flutter"'
+            else
+              config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ['$(inherited)', '"$(PROJECT_DIR)/Flutter"']
+            end
+
+            # Inject explicit header paths for Clang module scanning verification
+            h_paths = config.build_settings['HEADER_SEARCH_PATHS']
+            if h_paths.is_a?(String)
+              config.build_settings['HEADER_SEARCH_PATHS'] = [h_paths, '"$(PROJECT_DIR)/Flutter"']
+            elsif h_paths.is_a?(Array)
+              config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PROJECT_DIR)/Flutter"'
+            else
+              config.build_settings['HEADER_SEARCH_PATHS'] = ['$(inherited)', '"$(PROJECT_DIR)/Flutter"']
+            end
+          end
+        end
+      end
+      project.save
+      puts "SUCCESS: Injected native Flutter framework pathways directly into ShareExtension target blueprints!"
+    end
+  rescue => e
+    puts "Warning: Main project target injection routine bypassed: #{e.message}"
   end
 end

@@ -203,6 +203,7 @@ class _MainShellState extends State<MainShell> {
                 'createdAt': FieldValue.serverTimestamp(),
               });
           if (kDebugMode) debugPrint("Axiom Successfully Imported Share Asset: ${media.path}");
+          globalTabController.value = 1;
         } catch (e) {
           if (kDebugMode) debugPrint("Failed to write share asset to Firestore: $e");
         }
@@ -227,6 +228,7 @@ class _MainShellState extends State<MainShell> {
             'createdAt': FieldValue.serverTimestamp(),
           });
       if (kDebugMode) debugPrint("Axiom Successfully Pasted Shared Text.");
+        globalTabController.value = 1;
     } catch (e) {
       if (kDebugMode) debugPrint("Failed to write share text to Firestore: $e");
     }

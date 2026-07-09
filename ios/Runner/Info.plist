@@ -4,21 +4,31 @@
 <dict>
     <key>AppGroupId</key>
     <string>$(CUSTOM_GROUP_ID)</string>
+    
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>CFBundleURLName</key>
-            <string>com.mithil.neuralcanvas</string>
+            <string>com.mithil.neuralcanvas.axiom</string>
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>axiom</string>
-                <string>ShareMedia</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.mithil.neuralcanvas.sharing</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
                 <string>ShareMedia-com.mithil.neuralcanvas</string>
             </array>
         </dict>
     </array>
+    
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>NSCameraUsageDescription</key>

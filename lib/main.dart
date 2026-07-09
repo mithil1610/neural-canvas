@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'firebase_options.dart';
@@ -24,7 +25,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
@@ -276,8 +277,25 @@ class _MainShellState extends State<MainShell> {
           media.type == SharedMediaType.url) {
         _handleIncomingSharedText(media.path);
       } else {
-        // Active Ingestion: Differentiate images from documents during the Firestore synchronization routine
         try {
+          // CLOUD UPLOAD INTERCEPTOR: Sync physical file storage bytes directly into cloud bucket storage
+          final String fileName =
+              '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+          final storageRef = FirebaseStorage.instance
+              .ref()
+              .child('users')
+              .child(user.uid)
+              .child('knowledge_base')
+              .child(fileName);
+
+          // Stream file tracking data to the cloud bucket surface
+          final File uploadFile = File(rawPath);
+          if (!await uploadFile.exists()) continue;
+
+          final uploadTask = await storageRef.putFile(uploadFile);
+          final String downloadUrl = await uploadTask.ref.getDownloadURL();
+
+          // Active Ingestion: Write the storage URL so the cloud AI engine can instantly process it
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
@@ -287,18 +305,20 @@ class _MainShellState extends State<MainShell> {
                     ? 'Shared Image Asset'
                     : 'Shared Document Asset',
                 'type': isEligibleImage ? 'image' : 'document',
-                'path': rawPath,
+                'path': downloadUrl,
+                'url':
+                    downloadUrl, // Bound both standard schemas for universal plugin safety
                 'createdAt': FieldValue.serverTimestamp(),
               });
 
           if (kDebugMode)
-            debugPrint("Axiom Successfully Imported Share Asset: $rawPath");
+            debugPrint("Axiom Cloud Pipeline Complete: $downloadUrl");
 
           // Switch view context directly over to the Library Tab (Index 1)
           globalTabController.value = 1;
         } catch (e) {
           if (kDebugMode)
-            debugPrint("Failed to write share asset to Firestore: $e");
+            debugPrint("Failed to execute cloud asset ingestion sequence: $e");
         }
       }
     }

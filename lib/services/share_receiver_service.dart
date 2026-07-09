@@ -8,10 +8,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
+import 'package:neural_canvas/services/auth_service.dart';
 import 'package:neural_canvas/main.dart';
 
 class ShareReceiverService {
-  // Singleton pattern
   static final ShareReceiverService _instance =
       ShareReceiverService._internal();
   factory ShareReceiverService() => _instance;
@@ -20,8 +20,8 @@ class ShareReceiverService {
   StreamSubscription? _intentDataStreamSubscription;
 
   void initialize(GlobalKey<NavigatorState> navigatorKey) {
-    if (kIsWeb) return; // Web does not support receive_sharing_intent
-    // 1. For handling media files shared while the app is already open in the background.
+    if (kIsWeb) return;
+
     _intentDataStreamSubscription = ReceiveSharingIntent.instance
         .getMediaStream()
         .listen(
@@ -29,13 +29,11 @@ class ShareReceiverService {
             _processSharedFiles(value, navigatorKey);
           },
           onError: (err) {
-            if (kDebugMode) {
+            if (kDebugMode)
               debugPrint("ReceiveSharingIntent MediaStream Error: $err");
-            }
           },
         );
 
-    // 2. For handling media files shared while the app was completely closed (cold start).
     ReceiveSharingIntent.instance.getInitialMedia().then((
       List<SharedMediaFile> value,
     ) {
@@ -47,82 +45,166 @@ class ShareReceiverService {
     _intentDataStreamSubscription?.cancel();
   }
 
+  void _showUnsupportedTypeDialog(BuildContext context, String fileType) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B), // Slate 800
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Color(0xFFA78BFA), size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Invalid File Type',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Axiom cannot process files with the extension [ .$fileType ]. Please share eligible images, text notes, or PDFs.',
+            style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF818CF8),
+              ),
+              child: const Text(
+                'Got it',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _processSharedFiles(
     List<SharedMediaFile> files,
     GlobalKey<NavigatorState> navigatorKey,
   ) async {
     if (files.isEmpty) return;
+
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     for (var file in files) {
       final path = file.path;
-
-      // Extract file name and extension
       String fileName = path.split('/').last;
-      String ext = 'unknown';
-      if (fileName.contains('.')) {
-        ext = fileName.split('.').last.toLowerCase();
+      String ext = fileName.contains('.')
+          ? fileName.split('.').last.toLowerCase()
+          : '';
+
+      final bool isEligibleImage =
+          file.type == SharedMediaType.image ||
+          ['jpg', 'jpeg', 'png', 'gif', 'heic', 'webp'].contains(ext);
+
+      final bool isEligibleDoc = [
+        'pdf',
+        'doc',
+        'docx',
+        'txt',
+        'rtf',
+      ].contains(ext);
+
+      // 1. Validate File Format Eligibility
+      if (!isEligibleImage &&
+          !isEligibleDoc &&
+          file.type != SharedMediaType.text &&
+          file.type != SharedMediaType.url) {
+        _showUnsupportedTypeDialog(context, ext.toUpperCase());
+        continue;
       }
 
-      AiProcessingType aiType = AiProcessingType.unknown;
+      // 2. Validate Daily Upload Quotas Against Plan Tiers
+      final bool quotaCleared = await AuthService.checkUserUploadQuota(
+        context,
+        user.uid,
+      );
+      if (!quotaCleared) return;
 
-      if (file.type == SharedMediaType.image) {
-        aiType = AiProcessingType.image;
-      } else if (file.type == SharedMediaType.video) {
-        aiType = AiProcessingType.video;
-      } else if (file.type == SharedMediaType.file) {
-        if (ext == 'pdf') {
-          aiType = AiProcessingType.pdf;
-        } else {
-          aiType = AiProcessingType.text;
-        }
-      } else if (file.type == SharedMediaType.text ||
-          file.type == SharedMediaType.url) {
-        aiType = AiProcessingType.text;
-      }
-
-      // Transition user immediately to Knowledge Base Tab (Index 1)
+      // Instantly open the application view context straight to the Library Tab (Index 1)
       globalTabController.value = 1;
 
-      // Activate the global overlay immediately before processing
+      AiProcessingType aiType = AiProcessingType.unknown;
+      if (isEligibleImage) aiType = AiProcessingType.image;
+      if (ext == 'pdf') aiType = AiProcessingType.pdf;
+      if (file.type == SharedMediaType.text || file.type == SharedMediaType.url)
+        aiType = AiProcessingType.text;
+
+      // Trigger the global visual background AI processing shimmer overlay
       globalAiProcessingState.value = AiProcessingData(aiType);
 
       try {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final storageRef = FirebaseStorage.instance.ref().child(
-          'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
-        );
+        if (file.type == SharedMediaType.text ||
+            file.type == SharedMediaType.url) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('knowledge_base')
+              .add({
+                'title': 'Shared Clip Note',
+                'type': 'text',
+                'content': path,
+                'createdAt': FieldValue.serverTimestamp(),
+                'uploadedAt': FieldValue.serverTimestamp(),
+              });
+        } else {
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final storageRef = FirebaseStorage.instance.ref().child(
+            'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
+          );
 
-        final uploadTask = storageRef.putFile(File(path));
-        final snapshot = await uploadTask;
-        final mediaUrl = await snapshot.ref.getDownloadURL();
+          final uploadTask = storageRef.putFile(File(path));
+          final snapshot = await uploadTask;
+          final mediaUrl = await snapshot.ref.getDownloadURL();
 
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('knowledge_base')
-            .doc();
+          final docRef = FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('knowledge_base')
+              .doc();
 
-        await docRef.set({
-          'fileName': fileName,
-          'fileUrl': mediaUrl,
-          'fileType': ext,
-          'uploadedAt': FieldValue.serverTimestamp(),
-          'aiSummary': 'Processing data...',
-        });
+          // Combined schema maps satisfy your internal local screens & cloud analyzers
+          await docRef.set({
+            'fileName': fileName,
+            'title': isEligibleImage
+                ? 'Shared Image Asset'
+                : 'Shared Document Asset',
+            'smartTitle': isEligibleImage
+                ? 'Shared Image Asset'
+                : 'Shared Document Asset',
+            'type': isEligibleImage ? 'image' : 'document',
+            'fileType': ext,
+            'path': mediaUrl,
+            'url': mediaUrl,
+            'fileUrl': mediaUrl,
+            'uploadedAt': FieldValue.serverTimestamp(),
+            'createdAt': FieldValue.serverTimestamp(),
+            'aiSummary': 'Processing data...',
+          });
 
-        // Fire the asynchronous analyzer immediately
-        AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
-
-        if (kDebugMode) {
-          debugPrint("Share intent upload completed for $fileName");
+          // Hand off the valid web URL directly to your backend Gemini analyzer instance
+          AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
         }
       } catch (e) {
-        if (kDebugMode) debugPrint("Error analyzing shared asset: $e");
+        if (kDebugMode)
+          debugPrint("Error executing share intent cloud ingest: $e");
       }
 
-      // Deactivate immediately when finished
       globalAiProcessingState.value = null;
     }
   }

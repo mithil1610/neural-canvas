@@ -5,9 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -20,12 +18,13 @@ import 'package:neural_canvas/screens/chat_history_screen.dart';
 import 'package:neural_canvas/services/ai_service.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 import 'package:neural_canvas/services/notification_service.dart';
+import 'package:neural_canvas/services/share_receiver_service.dart';
 import 'package:neural_canvas/ui/screens/chronos_matrix_screen.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import 'dart:io' show Platform, File;
+import 'dart:io' show Platform;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final ValueNotifier<int> globalTabController = ValueNotifier<int>(0);
@@ -47,12 +46,10 @@ Future<void> main() async {
         providerApple: AppleAppAttestProvider(),
       );
 
-      // Initialize RevenueCat
       await Purchases.configure(
         PurchasesConfiguration("appl_DIumzQmJmaNDOQiPrfxmrLWixBy"),
       );
 
-      // Sync Customer Info with Firestore
       Purchases.addCustomerInfoUpdateListener((customerInfo) async {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -74,15 +71,14 @@ Future<void> main() async {
                 .doc(user.uid)
                 .update({'accountTier': newTier});
           } catch (e) {
-            if (kDebugMode) {
+            if (kDebugMode)
               debugPrint("Failed to sync RevenueCat entitlement: $e");
-            }
           }
         }
       });
     }
 
-    // Route all framework-level errors straight to telemetry reporting channel
+    // Route structural framework errors directly into your reporting channels
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
@@ -114,18 +110,18 @@ class NeuralCanvasApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF818CF8), // Indigo 400
+          primary: Color(0xFF818CF8),
           onPrimary: Colors.white,
-          secondary: Color(0xFFA78BFA), // Violet 400
+          secondary: Color(0xFFA78BFA),
           onSecondary: Colors.white,
-          surface: Color(0xFF0A0A0E), // Deep background
-          onSurface: Color(0xFFF8FAFC), // Slate 50
-          surfaceContainerHighest: Color(0xFF1E293B), // Slate 800
-          surfaceContainerHigh: Color(0xFF334155), // Slate 700
-          surfaceContainerLow: Color(0xFF0B1120), // Slate 950
-          outlineVariant: Color(0xFF475569), // Slate 600
+          surface: Color(0xFF0A0A0E),
+          onSurface: Color(0xFFF8FAFC),
+          surfaceContainerHighest: Color(0xFF1E293B),
+          surfaceContainerHigh: Color(0xFF334155),
+          surfaceContainerLow: Color(0xFF0B1120),
+          outlineVariant: Color(0xFF475569),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0A0A0E), // Deep background
+        scaffoldBackgroundColor: const Color(0xFF0A0A0E),
         textTheme: GoogleFonts.plusJakartaSansTextTheme(
           ThemeData.dark().textTheme,
         ),
@@ -156,193 +152,14 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     globalTabController.addListener(_onTabChanged);
 
-    // A. Listen for incoming files/images while the app is alive in background memory
-    ReceiveSharingIntent.instance.getMediaStream().listen(
-      (List<SharedMediaFile> value) {
-        if (value.isNotEmpty) {
-          _handleIncomingSharedMedia(value);
-        }
-      },
-      onError: (err) {
-        if (kDebugMode) debugPrint("Axiom Sharing Stream Error: $err");
-      },
-    );
-
-    // B. Check for files/images if the app was completely terminated and is now cold-launching
-    ReceiveSharingIntent.instance.getInitialMedia().then((
-      List<SharedMediaFile> value,
-    ) {
-      if (value.isNotEmpty) {
-        _handleIncomingSharedMedia(value);
-      }
-    });
+    // Completely isolates and instantiates incoming share intents via a single stream listener
+    ShareReceiverService().initialize(navigatorKey);
 
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;
       _navigateToHome();
     } else {
       _authenticateBiometrics();
-    }
-  }
-
-  // Graceful warning popup for unsupported file profiles
-  void _showUnsupportedTypeDialog(String fileType) {
-    final targetContext = navigatorKey.currentContext;
-    if (targetContext == null) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: targetContext,
-        barrierDismissible: true,
-        builder: (BuildContext dialogContext) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF1E293B), // Slate 800
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Row(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Color(0xFFA78BFA),
-                  size: 28,
-                ), // Violet 400
-                SizedBox(width: 12),
-                Text(
-                  'Invalid File Type',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            content: Text(
-              'Axiom cannot process files with the extension [ .$fileType ]. Please make sure you are sharing eligible images, screenshots, text files, or PDFs.',
-              style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF818CF8),
-                ), // Indigo 400
-                child: const Text(
-                  'Got it',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    });
-  }
-
-  void _handleIncomingSharedMedia(List<SharedMediaFile> files) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    for (var media in files) {
-      final String rawPath = media.path;
-      final String fileExtension = rawPath.contains('.')
-          ? rawPath.split('.').last.toLowerCase()
-          : '';
-
-      // Format Validation Matrix
-      final bool isEligibleImage =
-          media.type == SharedMediaType.image ||
-          ['jpg', 'jpeg', 'png', 'gif', 'heic', 'webp'].contains(fileExtension);
-
-      final bool isEligibleDoc = [
-        'pdf',
-        'doc',
-        'docx',
-        'txt',
-        'rtf',
-      ].contains(fileExtension);
-
-      // Validation Gatekeeper: Terminate parsing if an incompatible file profile is caught
-      if (!isEligibleImage &&
-          !isEligibleDoc &&
-          media.type != SharedMediaType.text &&
-          media.type != SharedMediaType.url) {
-        if (kDebugMode)
-          debugPrint("Axiom Blocked Unsupported Type: .$fileExtension");
-        _showUnsupportedTypeDialog(fileExtension.toUpperCase());
-        continue;
-      }
-
-      if (media.type == SharedMediaType.text ||
-          media.type == SharedMediaType.url) {
-        _handleIncomingSharedText(media.path);
-      } else {
-        try {
-          // CLOUD UPLOAD INTERCEPTOR: Sync physical file storage bytes directly into cloud bucket storage
-          final String fileName =
-              '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-          final storageRef = FirebaseStorage.instance
-              .ref()
-              .child('users')
-              .child(user.uid)
-              .child('knowledge_base')
-              .child(fileName);
-
-          // Stream file tracking data to the cloud bucket surface
-          final File uploadFile = File(rawPath);
-          if (!await uploadFile.exists()) continue;
-
-          final uploadTask = await storageRef.putFile(uploadFile);
-          final String downloadUrl = await uploadTask.ref.getDownloadURL();
-
-          // Active Ingestion: Write the storage URL so the cloud AI engine can instantly process it
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .collection('knowledge_base')
-              .add({
-                'title': isEligibleImage
-                    ? 'Shared Image Asset'
-                    : 'Shared Document Asset',
-                'type': isEligibleImage ? 'image' : 'document',
-                'path': downloadUrl,
-                'url':
-                    downloadUrl, // Bound both standard schemas for universal plugin safety
-                'createdAt': FieldValue.serverTimestamp(),
-              });
-
-          if (kDebugMode)
-            debugPrint("Axiom Cloud Pipeline Complete: $downloadUrl");
-
-          // Switch view context directly over to the Library Tab (Index 1)
-          globalTabController.value = 1;
-        } catch (e) {
-          if (kDebugMode)
-            debugPrint("Failed to execute cloud asset ingestion sequence: $e");
-        }
-      }
-    }
-  }
-
-  void _handleIncomingSharedText(String text) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('knowledge_base')
-          .add({
-            'title': 'Shared Clip Note',
-            'type': 'text',
-            'content': text,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-      if (kDebugMode) debugPrint("Axiom Successfully Pasted Shared Text.");
-      globalTabController.value = 1;
-    } catch (e) {
-      if (kDebugMode) debugPrint("Failed to write share text to Firestore: $e");
     }
   }
 
@@ -366,9 +183,6 @@ class _MainShellState extends State<MainShell> {
       bool isSupported = await auth.isDeviceSupported();
 
       if (!canCheck || !isSupported) {
-        debugPrint(
-          "Diagnostics: Biometrics not supported on this device. Bypassing lock screen.",
-        );
         _navigateToHome();
         return;
       }
@@ -382,13 +196,8 @@ class _MainShellState extends State<MainShell> {
       );
 
       if (didAuthenticate) {
-        debugPrint("Diagnostics: Biometric authentication successful.");
         _navigateToHome();
       } else {
-        debugPrint(
-          "Diagnostics: Biometrics returned false. Triggering fallback.",
-        );
-
         if (FirebaseAuth.instance.currentUser != null) {
           _navigateToHome();
         } else {
@@ -397,7 +206,6 @@ class _MainShellState extends State<MainShell> {
         }
       }
     } catch (e) {
-      debugPrint("Diagnostics: Native local auth exception caught: $e");
       _navigateToHome();
     }
   }

@@ -153,26 +153,28 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    // Begin listening for shared files the absolute second the app boots up
-    // ShareReceiverService removed to prevent duplication
     globalTabController.addListener(_onTabChanged);
 
     // A. Listen for incoming files/images while the app is alive in background memory
-    ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      if (value.isNotEmpty) {
-        _handleIncomingSharedMedia(value);
-      }
-    }, onError: (err) {
-      if (kDebugMode) debugPrint("Axiom Sharing Stream Error: $err");
-    });
+    ReceiveSharingIntent.instance.getMediaStream().listen(
+      (List<SharedMediaFile> value) {
+        if (value.isNotEmpty) {
+          _handleIncomingSharedMedia(value);
+        }
+      },
+      onError: (err) {
+        if (kDebugMode) debugPrint("Axiom Sharing Stream Error: $err");
+      },
+    );
 
     // B. Check for files/images if the app was completely terminated and is now cold-launching
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getInitialMedia().then((
+      List<SharedMediaFile> value,
+    ) {
       if (value.isNotEmpty) {
         _handleIncomingSharedMedia(value);
       }
     });
-
 
     if (MainRouter.bypassBiometricsOnce) {
       MainRouter.bypassBiometricsOnce = false;
@@ -182,30 +184,121 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  // Graceful warning popup for unsupported file profiles
+  void _showUnsupportedTypeDialog(String fileType) {
+    final targetContext = navigatorKey.currentContext;
+    if (targetContext == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: targetContext,
+        barrierDismissible: true,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E293B), // Slate 800
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFA78BFA),
+                  size: 28,
+                ), // Violet 400
+                SizedBox(width: 12),
+                Text(
+                  'Invalid File Type',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Axiom cannot process files with the extension [ .$fileType ]. Please make sure you are sharing eligible images, screenshots, text files, or PDFs.',
+              style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF818CF8),
+                ), // Indigo 400
+                child: const Text(
+                  'Got it',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
   void _handleIncomingSharedMedia(List<SharedMediaFile> files) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     for (var media in files) {
-      if (media.type == SharedMediaType.text || media.type == SharedMediaType.url) {
+      final String rawPath = media.path;
+      final String fileExtension = rawPath.contains('.')
+          ? rawPath.split('.').last.toLowerCase()
+          : '';
+
+      // Format Validation Matrix
+      final bool isEligibleImage =
+          media.type == SharedMediaType.image ||
+          ['jpg', 'jpeg', 'png', 'gif', 'heic', 'webp'].contains(fileExtension);
+
+      final bool isEligibleDoc = [
+        'pdf',
+        'doc',
+        'docx',
+        'txt',
+        'rtf',
+      ].contains(fileExtension);
+
+      // Validation Gatekeeper: Terminate parsing if an incompatible file profile is caught
+      if (!isEligibleImage &&
+          !isEligibleDoc &&
+          media.type != SharedMediaType.text &&
+          media.type != SharedMediaType.url) {
+        if (kDebugMode)
+          debugPrint("Axiom Blocked Unsupported Type: .$fileExtension");
+        _showUnsupportedTypeDialog(fileExtension.toUpperCase());
+        continue;
+      }
+
+      if (media.type == SharedMediaType.text ||
+          media.type == SharedMediaType.url) {
         _handleIncomingSharedText(media.path);
       } else {
-        // Active Ingestion: Write the shared image file reference path directly to the user's library collection
+        // Active Ingestion: Differentiate images from documents during the Firestore synchronization routine
         try {
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .collection('knowledge_base')
               .add({
-                'title': 'Shared Image Asset',
-                'type': 'image',
-                'path': media.path,
+                'title': isEligibleImage
+                    ? 'Shared Image Asset'
+                    : 'Shared Document Asset',
+                'type': isEligibleImage ? 'image' : 'document',
+                'path': rawPath,
                 'createdAt': FieldValue.serverTimestamp(),
               });
-          if (kDebugMode) debugPrint("Axiom Successfully Imported Share Asset: ${media.path}");
+
+          if (kDebugMode)
+            debugPrint("Axiom Successfully Imported Share Asset: $rawPath");
+
+          // Switch view context directly over to the Library Tab (Index 1)
           globalTabController.value = 1;
         } catch (e) {
-          if (kDebugMode) debugPrint("Failed to write share asset to Firestore: $e");
+          if (kDebugMode)
+            debugPrint("Failed to write share asset to Firestore: $e");
         }
       }
     }
@@ -215,7 +308,6 @@ class _MainShellState extends State<MainShell> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Active Ingestion: Save incoming clipped text directly as a snippet note inside the database framework
     try {
       await FirebaseFirestore.instance
           .collection('users')
@@ -228,7 +320,7 @@ class _MainShellState extends State<MainShell> {
             'createdAt': FieldValue.serverTimestamp(),
           });
       if (kDebugMode) debugPrint("Axiom Successfully Pasted Shared Text.");
-        globalTabController.value = 1;
+      globalTabController.value = 1;
     } catch (e) {
       if (kDebugMode) debugPrint("Failed to write share text to Firestore: $e");
     }
@@ -250,11 +342,9 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _authenticateBiometrics() async {
     try {
-      // 1. Check device capabilities safely
       bool canCheck = await auth.canCheckBiometrics;
       bool isSupported = await auth.isDeviceSupported();
 
-      // Safety Escape Hatch: If the device doesn't even support biometrics (like a fresh simulator)
       if (!canCheck || !isSupported) {
         debugPrint(
           "Diagnostics: Biometrics not supported on this device. Bypassing lock screen.",
@@ -263,40 +353,32 @@ class _MainShellState extends State<MainShell> {
         return;
       }
 
-      // 2. Trigger the native iOS Face ID prompt
       bool didAuthenticate = await auth.authenticate(
         localizedReason: 'Please unlock to access your Axiom workspace',
         options: const AuthenticationOptions(
-          stickyAuth: false, // Do not let it loop infinitely in the background
-          biometricOnly:
-              false, // Forces iOS to offer the device PIN/Passcode if Face ID fails
+          stickyAuth: false,
+          biometricOnly: false,
         ),
       );
 
       if (didAuthenticate) {
-        // SUCCESS PATHWAY
         debugPrint("Diagnostics: Biometric authentication successful.");
         _navigateToHome();
       } else {
-        // ❌ CRITICAL FIX: Face ID failed or was cancelled by user/reviewer.
-        // Do NOT freeze the screen. Force the app to act.
         debugPrint(
           "Diagnostics: Biometrics returned false. Triggering fallback.",
         );
 
-        // Option A: If they are already authenticated via Firebase, let them pass
         if (FirebaseAuth.instance.currentUser != null) {
           _navigateToHome();
         } else {
-          // Option B: If not logged in, force clear state and push them to the manual email sheet
           await FirebaseAuth.instance.signOut();
           _navigateToLoginScreen();
         }
       }
     } catch (e) {
-      // 🛡️ EMERGENCY ESCAPE HATCH: If any unexpected platform error or timeout occurs
       debugPrint("Diagnostics: Native local auth exception caught: $e");
-      _navigateToHome(); // Never block the user or reviewer from entering the app
+      _navigateToHome();
     }
   }
 
@@ -311,7 +393,6 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     globalTabController.removeListener(_onTabChanged);
-    // Removed ShareReceiverService dispose
     super.dispose();
   }
 

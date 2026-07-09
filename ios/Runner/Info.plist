@@ -14,13 +14,7 @@
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>axiom</string>
-            </array>
-        </dict>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
+                <string>ShareMedia</string>
                 <string>ShareMedia-com.mithil.neuralcanvas</string>
             </array>
         </dict>

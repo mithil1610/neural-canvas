@@ -1,6 +1,5 @@
 import UIKit
 import Flutter
-import receive_sharing_intent
 
 class SceneDelegate: FlutterSceneDelegate {
     
@@ -9,16 +8,12 @@ class SceneDelegate: FlutterSceneDelegate {
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        // CRITICAL INJECTION: Intercept cold-boot URL intents from the ShareExtension
-        _ = ReceiveSharingIntentPlugin.instance.scene(scene, willConnectTo: session, options: connectionOptions)
+        // Natively hands off the initial window scene configuration and cold-boot deep links to Flutter
         super.scene(scene, willConnectTo: session, options: connectionOptions)
     }
 
     override func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        // CRITICAL INJECTION: Intercept warm-boot background events from the ShareExtension
-        if ReceiveSharingIntentPlugin.instance.scene(scene, openURLContexts: URLContexts) {
-            return
-        }
+        // Natively forwards warm-boot background deep links directly into the Flutter engine stream
         super.scene(scene, openURLContexts: URLContexts)
     }
 }

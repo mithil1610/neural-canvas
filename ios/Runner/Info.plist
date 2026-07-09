@@ -3,8 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>AppGroupId</key>
-    <string>group.com.mithil.axiom</string>
-    
+    <string>group.com.mithil.neuralcanvas</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -19,7 +18,6 @@
             </array>
         </dict>
     </array>
-    
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>NSCameraUsageDescription</key>
@@ -52,7 +50,6 @@
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
-
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UILaunchStoryboardName</key>
@@ -65,7 +62,6 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-
     <key>NSFaceIDUsageDescription</key>
     <string>Axiom requires secure local biometric authentication to protect access to your private memory vaults.</string>
 </dict>

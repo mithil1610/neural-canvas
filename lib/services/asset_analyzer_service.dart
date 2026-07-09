@@ -129,14 +129,14 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
         );
       }
 
-      // Secondary pass for Chronos Lens Event Extractor
       await extractEvents(docId, summaryToSave);
     } catch (e) {
       if (kDebugMode) debugPrint("AssetAnalyzer failed: $e");
 
-      if (e.toString().contains('RESOURCE_EXHAUSTED') ||
-          e.toString().contains('429')) {
-        throw Exception('429');
+      // FIXED SELF-HEALING CEILING: Catch traffic spikes, delay 3 seconds, and retry instead of crashing out
+      if (e.toString().contains('RESOURCE_EXHAUSTED') || e.toString().contains('429')) {
+        await Future.delayed(const Duration(seconds: 3));
+        return analyzeIngestedAsset(docId, fileUrl, fileType);
       }
 
       await _updateSummaryAndTitle(
@@ -149,20 +149,7 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
 
   static String _fallbackTitle() {
     final now = DateTime.now();
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final amPm = now.hour >= 12 ? 'PM' : 'AM';
     int hr = now.hour % 12;
     if (hr == 0) hr = 12;
@@ -202,8 +189,7 @@ CRITICAL CONVERSATION OVERRIDE: If the input image is identified as a chat messa
     );
 
     try {
-      final prompt =
-          """
+      final prompt = """
 Analyze the following text for any identifiable timeline variables or scheduled events (e.g., meeting dates, locations, calendar slots, appointment confirmations).
 If events are found, return a JSON array of objects, where each object has these strictly named string keys: "eventTitle", "eventDateTime", "eventLocation".
 For "eventDateTime", strictly format it as a valid ISO8601 string (e.g., "2026-10-12T14:00:00Z").
@@ -256,7 +242,7 @@ Text: $summaryText
           await batch.commit();
           if (kDebugMode) {
             debugPrint(
-              "AssetAnalyzer: Successfully extracted \${events.length} events for $docId",
+              "AssetAnalyzer: Successfully extracted ${events.length} events for $docId",
             );
           }
         }

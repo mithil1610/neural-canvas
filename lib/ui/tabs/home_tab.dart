@@ -2133,34 +2133,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
-                  ),
+                  border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.3)),
+                  color: const Color(0xFFD97706).withValues(alpha: 0.1),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.movie_creation_outlined,
-                      size: 16,
-                      color: Color(0xFFF59E0B),
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      "Generate Cinematic Reel",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFF59E0B),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Generate Cinematic Reel',
+                        style: TextStyle(color: Color(0xFFFBBF24), fontWeight: FontWeight.w600),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -2198,34 +2187,23 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.5),
-                  ),
+                  border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
+                  color: const Color(0xFF059669).withValues(alpha: 0.1),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome_mosaic_outlined,
-                      size: 16,
-                      color: Color(0xFF10B981),
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      "Launch Visual Lookbook",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF10B981),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Launch Visual Lookbook',
+                        style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.w600),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

@@ -18,24 +18,33 @@ class PrivacyHelper {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF0F172A), // Dark slate
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: const BorderSide(color: Colors.white12),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.privacy_tip_outlined, color: Colors.blueAccent),
-              SizedBox(width: 12),
-              Text(
-                "AI Processing Disclosure",
-                style: TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-          content: const Text(
-            "To summarize and map your notes, Axiom securely processes your documents and text via Google Gemini AI. Data is encrypted in transit and handled strictly in accordance with our Privacy Policy. Do you agree to this processing?",
-            style: TextStyle(color: Colors.white70, height: 1.5),
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  "AI Integration Consent",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Text(
+                      "To summarize and map your notes, Axiom securely processes your documents and text via Google Gemini AI. Data is encrypted in transit and handled strictly in accordance with our Privacy Policy. Do you agree to this processing?",
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(

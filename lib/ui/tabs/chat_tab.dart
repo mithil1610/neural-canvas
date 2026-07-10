@@ -12,6 +12,8 @@ import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../../utils/ui_utils.dart';
 import '../../services/auth_service.dart';
 
@@ -28,6 +30,10 @@ class _ChatTabState extends State<ChatTab> {
   final AiService _aiService = AiService();
   final FocusNode _focusNode = FocusNode();
   PlatformFile? _selectedAttachment;
+  
+  final SpeechToText _speechToText = SpeechToText();
+  final FlutterTts _flutterTts = FlutterTts();
+  bool _isListening = false;
 
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
@@ -35,6 +41,46 @@ class _ChatTabState extends State<ChatTab> {
   void initState() {
     super.initState();
     _aiService.chatHistory.addListener(_onHistoryChanged);
+    _initSpeech();
+    _initTts();
+  }
+
+  void _initSpeech() async {
+    await _speechToText.initialize();
+    if (mounted) setState(() {});
+  }
+
+  void _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  void _startListening() async {
+    await _speechToText.listen(
+      onResult: (result) {
+        if (mounted) {
+          setState(() {
+            _textController.text = result.recognizedWords;
+          });
+        }
+      },
+    );
+    if (mounted) {
+      setState(() {
+        _isListening = true;
+      });
+    }
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+      });
+    }
   }
 
   @override
@@ -611,6 +657,11 @@ class _ChatTabState extends State<ChatTab> {
                                         .onSurfaceVariant
                                         .withValues(alpha: 0.6),
                                   ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                                    onPressed: _speechToText.isNotListening ? _startListening : _stopListening,
+                                    color: _isListening ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
@@ -780,17 +831,32 @@ class _ChatTabState extends State<ChatTab> {
 
               // Render Text Content
               if (type == 'text' || type == 'mixed' || type == 'file')
-                SelectableText.rich(
-                  TextSpan(
-                    children: _parseTextWithLinks(
-                      type == 'mixed'
-                          ? content
-                          : (type == 'file'
-                                ? 'Attached file: $content'
-                                : content),
-                      textColor,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: SelectableText.rich(
+                        TextSpan(
+                          children: _parseTextWithLinks(
+                            type == 'mixed'
+                                ? content
+                                : (type == 'file'
+                                      ? 'Attached file: $content'
+                                      : content),
+                            textColor,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (isAssistant && type == 'text' && content.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.volume_up, size: 20),
+                        color: textColor.withValues(alpha: 0.7),
+                        onPressed: () => _flutterTts.speak(content),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.only(left: 8),
+                      ),
+                  ],
                 ),
             ],
           ),
@@ -863,13 +929,29 @@ class _ChatTabState extends State<ChatTab> {
                           fontStyle: FontStyle.italic,
                         ),
                       )
-                    : SelectableText.rich(
-                        TextSpan(
-                          children: _parseTextWithLinks(
-                            message.text,
-                            textColor,
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: SelectableText.rich(
+                              TextSpan(
+                                children: _parseTextWithLinks(
+                                  message.text,
+                                  textColor,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (message.isAssistant && message.text.isNotEmpty && !message.isStreaming)
+                            IconButton(
+                              icon: const Icon(Icons.volume_up, size: 20),
+                              color: textColor.withValues(alpha: 0.7),
+                              onPressed: () => _flutterTts.speak(message.text),
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.only(left: 8),
+                            ),
+                        ],
                       ),
               ),
               if (message.isStreaming && message.text.isNotEmpty) ...[

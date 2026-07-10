@@ -95,13 +95,13 @@ class ShareReceiverService {
   ) async {
     if (files.isEmpty) return;
 
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     for (var file in files) {
+      final context = navigatorKey.currentContext;
+      if (context == null || !context.mounted) continue;
+
       final path = file.path;
       String fileName = path.split('/').last;
       String ext = fileName.contains('.')

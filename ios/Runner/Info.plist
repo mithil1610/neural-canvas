@@ -38,7 +38,7 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>Axiom requires microphone access to record and transcribe fluid audio ambient voice thoughts into your knowledge matrix.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Axiom requires speech recognition to transcribe your dictated messages directly into the chat.</string>
+    <string>Axiom requires speech recognition permission to transcribe your live audio questions and voice memos directly into text notes.</string>
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
     <key>CFBundleDevelopmentRegion</key>

@@ -139,11 +139,7 @@ class ShareReceiverService {
       // Instantly open the application view context straight to the Library Tab (Index 1)
       globalTabController.value = 1;
 
-      AiProcessingType aiType = AiProcessingType.unknown;
-      if (isEligibleImage) aiType = AiProcessingType.image;
-      if (ext == 'pdf') aiType = AiProcessingType.pdf;
-      if (file.type == SharedMediaType.text || file.type == SharedMediaType.url)
-        aiType = AiProcessingType.text;
+      AiProcessingType aiType = isEligibleImage ? AiProcessingType.image : (ext == 'pdf' ? AiProcessingType.pdf : AiProcessingType.text);
 
       // Trigger the global visual background AI processing shimmer overlay
       globalAiProcessingState.value = AiProcessingData(aiType);

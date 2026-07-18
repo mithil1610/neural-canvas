@@ -37,7 +37,10 @@ class ShareReceiverService {
     ReceiveSharingIntent.instance.getInitialMedia().then((
       List<SharedMediaFile> value,
     ) {
-      _processSharedFiles(value, navigatorKey);
+      if (value.isNotEmpty) {
+        _processSharedFiles(value, navigatorKey);
+        ReceiveSharingIntent.instance.reset(); // Wipes intent cache memory to permanently stop duplicate uploads
+      }
     });
   }
 

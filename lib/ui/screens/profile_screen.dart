@@ -8,6 +8,9 @@ import 'package:flutter/foundation.dart';
 import 'package:neural_canvas/screens/auth_gate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:neural_canvas/services/notification_service.dart';
 import '../../utils/ui_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -137,20 +140,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _deleteStorageFolder(Reference ref) async {
-    try {
-      final listResult = await ref.listAll();
-      for (var item in listResult.items) {
-        await item.delete();
-      }
-      for (var prefix in listResult.prefixes) {
-        await _deleteStorageFolder(prefix);
-      }
-    } catch (e) {
-      if (kDebugMode) debugPrint("Storage delete folder error: $e");
-    }
-  }
-
   Future<void> _deleteAccount() async {
     HapticFeedback.heavyImpact();
     final confirm = await showDialog<bool>(
@@ -180,63 +169,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final uid = user.uid;
 
     setState(() {
       _isSaving = true;
     });
 
     try {
-      // Step A: Storage
-      await _deleteStorageFolder(
-        FirebaseStorage.instance.ref().child('users/$uid'),
-      );
+      // 1. Cancel all pending local notifications for this user
+      await NotificationService().flutterLocalNotificationsPlugin.cancelAll();
 
-      // Step B: Firestore sub-collections
-      final collections = ['knowledge_base', 'upcoming_events', 'chats'];
-      for (var coll in collections) {
-        try {
-          final snapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .collection(coll)
-              .get();
-          for (var doc in snapshot.docs) {
-            await doc.reference.delete();
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint("Firestore sub-collection $coll delete error: $e");
-          }
-        }
-      }
+      // 2. Call server-side complete account purge function
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('deleteAccount');
+      await callable.call();
 
-      // Step C: Remove user profile document
+      // 3. Log out RevenueCat
       try {
-        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      } catch (e) {
-        if (kDebugMode) debugPrint("Firestore doc delete error: $e");
-      }
-
-      // Step D: Permanently delete auth credentials
-      try {
-        await user.delete();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'requires-recent-login') {
-          if (mounted) {
-            UIUtils.showFloatingSnackBar(
-              context,
-              'Security requirement: Please log in again to delete your account.',
-            );
-          }
-          await FirebaseAuth.instance.signOut();
-        } else {
-          if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
-          await FirebaseAuth.instance.signOut();
+        if (await Purchases.isConfigured) {
+          await Purchases.logOut();
         }
-      } catch (e) {
-        if (kDebugMode) debugPrint("Auth deletion fallback triggered: $e");
-        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+
+      // 4. Sign out locally
+      await FirebaseAuth.instance.signOut();
+
+      if (mounted) {
+        UIUtils.showFloatingSnackBar(
+          context,
+          'Account and vault data purged successfully.',
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 class ReelStoryboardScreen extends StatefulWidget {
@@ -27,8 +27,6 @@ class _ReelStoryboardScreenState extends State<ReelStoryboardScreen>
   bool _isLoading = true;
   String _storyboardMarkdown = "";
 
-  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
-
   @override
   void initState() {
     super.initState();
@@ -45,23 +43,7 @@ class _ReelStoryboardScreenState extends State<ReelStoryboardScreen>
   }
 
   Future<void> _generateStoryboard() async {
-    if (_geminiApiKey.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _storyboardMarkdown = "> **Error:** GEMINI_API_KEY not configured.";
-        });
-        _animController.forward();
-      }
-      return;
-    }
-
     try {
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: _geminiApiKey,
-      );
-
       List<String> summaries = widget.clusterItems
           .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
@@ -70,32 +52,29 @@ class _ReelStoryboardScreenState extends State<ReelStoryboardScreen>
           .where((s) => s.isNotEmpty)
           .toList();
 
-      final prompt =
-          """
-Act as a Master Short-Form Director. Analyze these media segment summaries representing a cluster of memories. 
-Synthesize a definitive chronological video narrative story arc script layout. 
-Generate dynamic subtitle text overlays for every slide/scene transition and suggest an overarching theme vibe or musical tempo score template. 
-Package everything into a striking markdown screen array using ## headers, bullet points, and blockquotes for visual flair.
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'generateStoryboard',
+      );
+      final result = await callable.call({
+        'summaries': summaries,
+        'dateKey': widget.dateKey,
+      });
 
-Summaries:
-${summaries.join('\n\n---\n\n')}
-""";
-
-      final response = await model.generateContent([Content.text(prompt)]);
+      final storyboardText =
+          result.data['storyboard']?.toString() ??
+          "> **Notice:** The director could not assemble a narrative from these segments.";
 
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _storyboardMarkdown =
-            response.text ??
-            "> **Notice:** The director could not assemble a narrative from these segments.";
+        _storyboardMarkdown = storyboardText;
       });
       _animController.forward();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _storyboardMarkdown = "> **Error assembling storyboard:** \$e";
+        _storyboardMarkdown = "> **Error assembling storyboard:** $e";
       });
       _animController.forward();
     }

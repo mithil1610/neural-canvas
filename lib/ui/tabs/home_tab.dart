@@ -15,7 +15,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
 // import '../../services/user_service.dart';
@@ -1014,19 +1014,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   }
 
   Future<String> _generateTitleFromText(String text) async {
-    const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
-    if (geminiApiKey.isEmpty) {
-      return 'Pasted_Note_${DateTime.now().millisecondsSinceEpoch}.txt';
-    }
     try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: geminiApiKey,
-      );
-      final prompt =
-          "Review this pasted text snippet. Generate a highly descriptive, professional 3-to-4 word summary title. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Text: ${text.substring(0, text.length > 500 ? 500 : text.length)}";
-      final response = await model.generateContent([Content.text(prompt)]);
-      final title = response.text?.trim() ?? 'Untitled Note';
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('generateTitle');
+      final result = await callable.call({'text': text});
+      final title = result.data['title']?.toString() ?? 'Untitled Note';
       final sanitizedTitle = title
           .replaceAll('"', '')
           .replaceAll('\n', ' ')
@@ -1196,21 +1187,12 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
     DocumentReference docRef,
     String rawText,
   ) async {
-    const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
-    if (geminiApiKey.isEmpty) return;
-
     try {
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: geminiApiKey,
-      );
-      final prompt =
-          "Analyze this raw text. Extract key themes and rewrite it into a highly optimized, structured summary. Return ONLY the summary.\n\nText: $rawText";
-      final response = await model.generateContent([Content.text(prompt)]);
-
-      if (response.text != null && response.text!.isNotEmpty) {
-        await docRef.update({'aiSummary': response.text!.trim()});
-      }
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('enhanceText');
+      await callable.call({
+        'docId': docRef.id,
+        'rawText': rawText,
+      });
     } catch (e) {
       if (kDebugMode) debugPrint('Failed to enhance text node: $e');
     }
@@ -1502,8 +1484,6 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                             'uid': FirebaseAuth.instance.currentUser!.uid,
                             'email':
                                 FirebaseAuth.instance.currentUser!.email ?? '',
-                            'accountTier': 'Free',
-                            'aiUsageCount': 0,
                             'createdAt': FieldValue.serverTimestamp(),
                           }, SetOptions(merge: true));
                       return const Center(child: CircularProgressIndicator());
@@ -2226,7 +2206,6 @@ class _GenerateDialogState extends State<_GenerateDialog> {
   final TextEditingController _promptController = TextEditingController();
   bool _isGenerating = false;
   String _generatedContent = '';
-  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   Future<void> _synthesizeMatrix() async {
     final prompt = _promptController.text.trim();
@@ -2244,47 +2223,15 @@ class _GenerateDialogState extends State<_GenerateDialog> {
     });
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.user.uid)
-          .collection('knowledge_base')
-          .get();
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('synthesizeCreation');
+      final result = await callable.call({'prompt': prompt});
+      final content = result.data['content']?.toString() ??
+          "The engine could not assemble a narrative for this request.";
 
-      String allSummaries = snapshot.docs
-          .map((d) {
-            final data = d.data();
-            return "Asset: ${data['fileName']} | Summary: ${data['aiSummary']}";
-          })
-          .join('\n\n');
-
-      final systemInstruction =
-          "You are the Axiom Creation Engine. Review this complete vault of user-ingested knowledge memories: [VAULT: $allSummaries]. Based entirely on these personal records, fulfill the user's creative generation request: $prompt. Build an emotionally engaging, structurally sound narrative story arc or compilation response. Deliver the result in beautiful markdown styling.";
-
-      if (_geminiApiKey.isEmpty) {
+      if (mounted) {
         setState(() {
-          _generatedContent =
-              "Configuration error: GEMINI_API_KEY environment compilation variable is empty. Please verify your build configurations.";
-          _isGenerating = false;
+          _generatedContent = content;
         });
-        return;
-      }
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: _geminiApiKey,
-      );
-
-      final responseStream = model.generateContentStream([
-        Content.text(systemInstruction),
-      ]);
-
-      await for (final chunk in responseStream) {
-        if (chunk.text != null) {
-          if (mounted) {
-            setState(() {
-              _generatedContent += chunk.text!;
-            });
-          }
-        }
       }
     } catch (e) {
       if (mounted) {

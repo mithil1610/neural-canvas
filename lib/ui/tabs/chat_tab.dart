@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../utils/ui_utils.dart';
@@ -34,8 +34,6 @@ class _ChatTabState extends State<ChatTab> {
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
   bool _isListening = false;
-
-  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   @override
   void initState() {
@@ -213,159 +211,50 @@ class _ChatTabState extends State<ChatTab> {
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
-    // Push the payload into the messages sub-collection
-    final userMessageRef = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('chats')
-        .doc(activeChatId)
-        .collection('messages')
-        .add(payload);
-
-    // 1.5 Fetch Knowledge Base for RAG
-    var knowledgeSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('knowledge_base')
-        .get();
-
-    String retrievedContext = knowledgeSnapshot.docs
-        .map((d) {
-          final data = d.data();
-          return "Document Source [Name: ${data['fileName']}]: ${data['aiSummary']}";
-        })
-        .join("\n");
-
-    // 2. Fetch last 5 messages for context
-    final historySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('chats')
-        .doc(activeChatId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .limit(6)
-        .get();
-
-    final List<Content> promptContents = [];
-    for (var doc in historySnapshot.docs.reversed) {
-      final data = doc.data();
-      final rawRole = data['role']?.toString().toLowerCase() ?? 'user';
-      final role = (rawRole == 'model' || rawRole == 'ai' || rawRole == 'system' || rawRole == 'assistant') ? 'model' : 'user';
-      final text = data['content'] as String? ?? '';
-
-      if (doc.id == userMessageRef.id) {
-        final List<Part> parts = [];
-        if (trimmedText.isNotEmpty) {
-          parts.add(
-            TextPart(
-              "You are the Axiom AI Second Brain. You possess deep access to the user's private knowledge vault records.\nHere are the current facts from their ingested files:\n$retrievedContext\n\nUsing exclusively the file facts outlined above, answer the user's specific prompt accurately: $trimmedText",
-            ),
-          );
-        } else if (messageType != 'text') {
-          parts.add(TextPart("I have attached a $messageType."));
-        }
-
-        if (attachment != null) {
-          Uint8List? fileBytes;
-          if (kIsWeb) {
-            fileBytes = attachment.bytes;
-          } else {
-            fileBytes = File(attachment.path!).readAsBytesSync();
-          }
-
-          if (fileBytes != null) {
-            final ext = attachment.extension?.toLowerCase() ?? '';
-            String mimeType = 'image/jpeg';
-            if (ext == 'png') {
-              mimeType = 'image/png';
-            } else if (ext == 'pdf') {
-              mimeType = 'application/pdf';
-            }
-            parts.add(DataPart(mimeType, fileBytes));
-          }
-        }
-        promptContents.add(Content(role, parts));
-      } else {
-        if (text.isNotEmpty && data['type'] == 'text') {
-          promptContents.add(Content(role, [TextPart(text)]));
-        } else if (data['type'] == 'mixed' && data['content'] != null) {
-          promptContents.add(Content(role, [TextPart(text)]));
-        } else if (data['type'] == 'image') {
-          promptContents.add(
-            Content(role, [TextPart("[User attached an image]")]),
-          );
-        }
-      }
-    }
-
-    if (_geminiApiKey.isEmpty) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(activeChatId)
-          .collection('messages')
-          .add({
-            'senderId': 'system',
-            'role': 'ai',
-            'timestamp': FieldValue.serverTimestamp(),
-            'type': 'text',
-            'content':
-                'Error: GEMINI_API_KEY is not configured in the environment. Please rebuild with --dart-define=GEMINI_API_KEY=...',
-          });
-      _focusNode.requestFocus();
-      return;
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: _geminiApiKey,
-    );
+    // Display temporary local streaming indicator
+    _aiService.chatHistory.value = [
+      ..._aiService.chatHistory.value,
+      const ChatMessage(text: '', isAssistant: true, isStreaming: true),
+    ];
 
     try {
-      final responseStream = model.generateContentStream(promptContents);
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('chatWithRag');
+      await callable.call({
+        'prompt': trimmedText,
+        'chatId': activeChatId,
+        'mediaUrl': mediaUrl,
+        'mediaType': attachment != null ? (attachment.extension == 'pdf' ? 'application/pdf' : 'image/jpeg') : null,
+        'fileName': attachment?.name,
+        'messageType': messageType,
+      });
 
-      final aiMessageRef = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(activeChatId)
-          .collection('messages')
-          .add({
-            'senderId': 'system',
-            'role': 'ai',
-            'timestamp': FieldValue.serverTimestamp(),
-            'type': 'text',
-            'content': '',
-          });
+      // Remove local streaming indicator as Firestore stream receives the actual response
+      final currentList = List<ChatMessage>.from(_aiService.chatHistory.value);
+      currentList.removeWhere((m) => m.isStreaming);
+      _aiService.chatHistory.value = currentList;
 
-      String fullResponse = '';
-      await for (final chunk in responseStream) {
-        if (chunk.text != null) {
-          fullResponse += chunk.text!;
-          await aiMessageRef.update({'content': fullResponse});
-        }
+      // Auto-title on early messages
+      updateChatSessionTitle(activeChatId);
+    } on FirebaseFunctionsException catch (e) {
+      final currentList = List<ChatMessage>.from(_aiService.chatHistory.value);
+      currentList.removeWhere((m) => m.isStreaming);
+      _aiService.chatHistory.value = currentList;
+
+      String errorMsg = e.message ?? "Error generating response.";
+      if (e.code == 'resource-exhausted') {
+        errorMsg = e.message ?? "Daily chat limit reached for your tier.";
+      }
+      if (mounted) {
+        UIUtils.showFloatingSnackBar(context, errorMsg);
       }
     } catch (e) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(activeChatId)
-          .collection('messages')
-          .add({
-            'senderId': 'system',
-            'role': 'ai',
-            'timestamp': FieldValue.serverTimestamp(),
-            'type': 'text',
-            'content': 'Error generating response: $e',
-          });
-    }
+      final currentList = List<ChatMessage>.from(_aiService.chatHistory.value);
+      currentList.removeWhere((m) => m.isStreaming);
+      _aiService.chatHistory.value = currentList;
 
-    if (historySnapshot.docs.length == 1) {
-      // 1 User msg (AI msg just added) -> Total 2
-      updateChatSessionTitle(activeChatId);
+      if (mounted) {
+        UIUtils.showFloatingSnackBar(context, "Unexpected network error: $e");
+      }
     }
 
     _focusNode.requestFocus();
@@ -373,49 +262,11 @@ class _ChatTabState extends State<ChatTab> {
 
   Future<void> updateChatSessionTitle(String chatId) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _geminiApiKey.isEmpty) return;
+    if (user == null) return;
 
     try {
-      final messagesSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .orderBy('timestamp', descending: false)
-          .limit(2)
-          .get();
-
-      String openingMessagesContent = messagesSnapshot.docs
-          .map((d) {
-            final data = d.data();
-            final role = data['role'] == 'ai' ? 'AI' : 'User';
-            return "$role: ${data['content']}";
-          })
-          .join('\n');
-
-      final prompt =
-          "Review these opening messages from a chat session. Generate a highly descriptive, professional 3-to-4 word summary title for this conversation. Return exclusively the raw title text string without any introductory phrases, wrap text, or punctuation marks. Conversation text logs: $openingMessagesContent";
-
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: _geminiApiKey,
-      );
-
-      final response = await model.generateContent([Content.text(prompt)]);
-      final geminiGeneratedTitle = response.text?.trim() ?? 'New Conversation';
-
-      // Clean up potential markdown formatting from gemini
-      final cleanTitle = geminiGeneratedTitle
-          .replaceAll('**', '')
-          .replaceAll('"', '');
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('chats')
-          .doc(chatId)
-          .update({'title': cleanTitle});
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('updateChatTitle');
+      await callable.call({'chatId': chatId});
     } catch (e) {
       if (kDebugMode) debugPrint("Auto-title error: $e");
     }

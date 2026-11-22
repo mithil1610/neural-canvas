@@ -1,9 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
-import '../../utils/ui_utils.dart';
+import '../modals/paywall_sheet.dart';
 
 class SubscriptionPaywallScreen extends StatefulWidget {
   const SubscriptionPaywallScreen({super.key});
@@ -23,35 +21,17 @@ class SubscriptionPaywallScreen extends StatefulWidget {
 }
 
 class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
-  bool _isPurchasing = false;
+  final bool _isPurchasing = false;
 
-  Future<void> _simulatePurchase(String targetTier) async {
+  void _openStoreKitPaywall() {
     HapticFeedback.lightImpact();
-    setState(() {
-      _isPurchasing = true;
-    });
-
-    // Sandbox 1.5s delay
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'accountTier': targetTier},
-      );
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _isPurchasing = false;
-    });
-
-    UIUtils.showFloatingSnackBar(
-      context,
-      "Premium Matrix Link Activated Successfully!",
-    );
     Navigator.of(context).pop();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const PaywallSheet(),
+    );
   }
 
   Widget _buildTierCard({
@@ -298,7 +278,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                               'Unlocks advanced AI editing, unlimited narrative generation, and auto-reels.',
                           icon: Icons.auto_awesome,
                           isPopular: true,
-                          onTap: () => _simulatePurchase('pro'),
+                          onTap: _openStoreKitPaywall,
                         ),
                         _buildTierCard(
                           context: context,
@@ -307,7 +287,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                           description:
                               'Unlocks long-term deep personalization models, full cross-format graph mapping, and max storage.',
                           icon: Icons.all_inclusive,
-                          onTap: () => _simulatePurchase('premium'),
+                          onTap: _openStoreKitPaywall,
                         ),
                         _buildTierCard(
                           context: context,

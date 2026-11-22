@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,7 +47,7 @@ class AuthService {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   content: const Text(
-                    "You've reached your structural monthly capacity pool allocation threshold metrics. Your Second Brain values will refresh next month!",
+                    "You've reached your monthly capacity allocation threshold. Your Second Brain values will refresh next month!",
                     style: TextStyle(color: Colors.white70),
                   ),
                   actions: [
@@ -68,9 +67,7 @@ class AuthService {
         return false;
       }
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'aiUsageCount': FieldValue.increment(1),
-      });
+      // Usage counters are incremented on the server inside transaction
       return true;
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -112,10 +109,6 @@ class AuthService {
 
       if (lastUploadDate != todayDate) {
         dailyUploadCount = 0;
-        await userRef.update({
-          'dailyUploadCount': 0,
-          'lastUploadDate': todayDate,
-        });
       }
 
       if (accountTier == 'Free') {
@@ -132,12 +125,7 @@ class AuthService {
         }
       }
 
-      final batch = FirebaseFirestore.instance.batch();
-      batch.update(userDoc.reference, {
-        'dailyUploadCount': FieldValue.increment(1),
-      });
-      await batch.commit();
-
+      // Server enforces and increments the daily upload counter
       return true;
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -155,16 +143,8 @@ class AuthService {
     }
   }
 
-  // Fixed cross-write tracking anomalies
+  // Quota is managed and incremented on server
   static Future<void> incrementDailyUploadQuota() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'dailyUploadCount': FieldValue.increment(1)},
-      );
-    } catch (e) {
-      if (kDebugMode) debugPrint("Error incrementing daily quota: $e");
-    }
+    // Server functions handle quota incrementation inside Firestore transactions
   }
 }

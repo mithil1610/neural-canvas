@@ -1,0 +1,23 @@
+Welcome to Axiom 1.3.0 — Your AI Second Brain, refined and supercharged!
+
+Here is what's new in this release:
+
+• Faster, Smarter AI Knowledge Engine
+We have upgraded our AI processing infrastructure to deliver faster multimodal document analysis, sharper photo OCR, and more insightful conversational recall from your personal vault.
+
+• Precise Event Reminders & Timezone Intelligence
+Never miss a meeting, deadline, or appointment again. Axiom's Chronos Matrix now recognizes your local time zone seamlessly, scheduling smart reminders accurately whether your events are across town or across the globe.
+
+• Enhanced Assistant Chat with Deep Knowledge Search
+Chatting with your Second Brain is now more context-aware than ever. Axiom accurately surfaces relevant insights, facts, and documents from your memory vault without missing a beat.
+
+• Dynamic Offerings & Instant Subscription Sync
+Explore our Creation Engine and Infinite Brain plans with full support for Apple introductory pricing and free trials. Restoring purchases or changing plans now updates your access across your devices instantly.
+
+• Streamlined Account Controls & Vault Purge
+Enjoy complete sovereignty over your data with our refreshed one-tap Vault Purge in Profile Settings, allowing you to manage your storage and personal archive with complete confidence.
+
+• Performance & Polish
+General performance optimizations, smoother transitions, and battery efficiency improvements throughout the experience.
+
+Love using Axiom? Leave us a review on the App Store!

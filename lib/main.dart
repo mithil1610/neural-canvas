@@ -4,8 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:neural_canvas/services/review_service.dart';
 import 'firebase_options.dart';
 
 import 'package:neural_canvas/screens/auth_gate.dart';
@@ -50,29 +50,32 @@ Future<void> main() async {
         PurchasesConfiguration("appl_DIumzQmJmaNDOQiPrfxmrLWixBy"),
       );
 
-      Purchases.addCustomerInfoUpdateListener((customerInfo) async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          String newTier = "Free";
-          if (customerInfo.entitlements.all["infinite_brain"]?.isActive ==
-              true) {
-            newTier = "Infinite Brain";
-          } else if (customerInfo
-                  .entitlements
-                  .all["creation_engine"]
-                  ?.isActive ==
-              true) {
-            newTier = "Creation Engine";
-          }
+      // CustomerInfo listener only refreshes the local state/UI, never writes accountTier directly
+      Purchases.addCustomerInfoUpdateListener((customerInfo) {
+        if (kDebugMode) {
+          debugPrint("RevenueCat CustomerInfo updated: ${customerInfo.entitlements.active.keys}");
+        }
+      });
 
+      // Synchronize RevenueCat appUserID with Firebase Auth UID
+      FirebaseAuth.instance.authStateChanges().listen((user) async {
+        if (user != null) {
           try {
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .update({'accountTier': newTier});
+            await Purchases.logIn(user.uid);
+            if (kDebugMode) {
+              debugPrint("RevenueCat logged in with UID: ${user.uid}");
+            }
           } catch (e) {
-            if (kDebugMode)
-              debugPrint("Failed to sync RevenueCat entitlement: $e");
+            if (kDebugMode) debugPrint("RevenueCat logIn error: $e");
+          }
+        } else {
+          try {
+            if (await Purchases.isConfigured) {
+              await Purchases.logOut();
+              if (kDebugMode) debugPrint("RevenueCat logged out.");
+            }
+          } catch (e) {
+            if (kDebugMode) debugPrint("RevenueCat logOut error: $e");
           }
         }
       });
@@ -90,6 +93,7 @@ Future<void> main() async {
 
   tz.initializeTimeZones();
   await NotificationService().initialize();
+  await ReviewService.markAppLaunched();
 
   runApp(const NeuralCanvasApp());
 }

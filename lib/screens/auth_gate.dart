@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:neural_canvas/main.dart' show MainShell, MainRouter;
 import '../utils/ui_utils.dart';
 
@@ -415,6 +416,9 @@ class _AuthGateState extends State<AuthGate> {
       // Verify and create the base user profile document
       if (userCredential.user != null) {
         MainRouter.bypassBiometricsOnce = true;
+        try {
+          await Purchases.logIn(userCredential.user!.uid);
+        } catch (_) {}
         if (!_isLogin) {
           await userCredential.user!.updateDisplayName(
             _nameController.text.trim(),
@@ -427,13 +431,6 @@ class _AuthGateState extends State<AuthGate> {
                 'uid': userCredential.user!.uid,
                 'fullName': _nameController.text.trim(),
                 'email': _emailController.text.trim(),
-                'accountTier': 'Free',
-                'aiUsageCount': 0,
-                'dailyUploadCount':
-                    0, // Explicitly initialize daily metrics array field
-                'lastUploadDate': DateTime.now().toIso8601String().split(
-                  'T',
-                )[0], // Locks starting sync signature
                 'createdAt': FieldValue.serverTimestamp(),
                 'lastLoginAt': FieldValue.serverTimestamp(),
                 'legalCompliance': {

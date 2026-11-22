@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      // Users can only read their own files
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Users can create and update files up to 25MB of allowed MIME types
+      allow create, update: if request.auth != null && request.auth.uid == userId
+        && request.resource.size <= 25 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType.matches('audio/.*') ||
+          request.resource.contentType == 'application/pdf' ||
+          request.resource.contentType == 'text/plain' ||
+          request.resource.contentType == 'application/msword' ||
+          request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+
+      // Users can delete their own files
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

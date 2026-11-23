@@ -9,9 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-
 class CinematicReelScreen extends StatefulWidget {
-  const CinematicReelScreen({Key? key}) : super(key: key);
+  const CinematicReelScreen({super.key});
 
   @override
   State<CinematicReelScreen> createState() => _CinematicReelScreenState();
@@ -55,8 +54,13 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
       final response = await http.get(Uri.parse(url));
       final dir = await getTemporaryDirectory();
       final ext = url.split('?').first.split('.').last;
-      final extToUse = (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'mp4') ? ext : 'jpg';
-      final file = File('${dir.path}/reel_export_${DateTime.now().millisecondsSinceEpoch}.$extToUse');
+      final extToUse =
+          (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'mp4')
+          ? ext
+          : 'jpg';
+      final file = File(
+        '${dir.path}/reel_export_${DateTime.now().millisecondsSinceEpoch}.$extToUse',
+      );
       await file.writeAsBytes(response.bodyBytes);
       await Share.shareXFiles([XFile(file.path)], text: 'Exported from Axiom');
     } catch (e) {
@@ -65,7 +69,6 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
       setState(() => _isDownloading = false);
     }
   }
-
 
   Future<void> _fetchRecentMedia() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -165,7 +168,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
               final doc = _mediaDocs[index];
               final url = doc['fileUrl'] as String?;
               final summary = doc['aiSummary'] as String? ?? '';
-              
+
               return Stack(
                 fit: StackFit.expand,
                 children: [
@@ -195,10 +198,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
                     bottom: 60,
                     left: 20,
                     right: 20,
-                    child: _TypewriterText(
-                      text: summary,
-                      key: ValueKey(index),
-                    ),
+                    child: _TypewriterText(text: summary, key: ValueKey(index)),
                   ),
                 ],
               );
@@ -221,12 +221,19 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
                     child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     ),
                   )
                 else
                   IconButton(
-                    icon: const Icon(Icons.download, color: Colors.white, size: 30),
+                    icon: const Icon(
+                      Icons.download,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                     onPressed: () {
                       final doc = _mediaDocs[_currentIndex];
                       final url = doc['fileUrl'] as String?;
@@ -244,7 +251,7 @@ class _CinematicReelScreenState extends State<CinematicReelScreen> {
 
 class _TypewriterText extends StatefulWidget {
   final String text;
-  const _TypewriterText({Key? key, required this.text}) : super(key: key);
+  const _TypewriterText({super.key, required this.text});
 
   @override
   State<_TypewriterText> createState() => _TypewriterTextState();
@@ -290,11 +297,7 @@ class _TypewriterTextState extends State<_TypewriterText> {
         fontWeight: FontWeight.bold,
         height: 1.4,
         shadows: [
-          Shadow(
-            color: Colors.black,
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
+          Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 2)),
         ],
       ),
     );

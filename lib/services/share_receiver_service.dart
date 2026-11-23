@@ -31,8 +31,9 @@ class ShareReceiverService {
             _processSharedFiles(value, navigatorKey);
           },
           onError: (err) {
-            if (kDebugMode)
+            if (kDebugMode) {
               debugPrint("ReceiveSharingIntent MediaStream Error: $err");
+            }
           },
         );
 
@@ -41,7 +42,8 @@ class ShareReceiverService {
     ) {
       if (value.isNotEmpty) {
         _processSharedFiles(value, navigatorKey);
-        ReceiveSharingIntent.instance.reset(); // Wipes intent cache memory to permanently stop duplicate uploads
+        ReceiveSharingIntent.instance
+            .reset(); // Wipes intent cache memory to permanently stop duplicate uploads
       }
     });
   }
@@ -144,7 +146,9 @@ class ShareReceiverService {
       // Instantly open the application view context straight to the Library Tab (Index 1)
       globalTabController.value = 1;
 
-      AiProcessingType aiType = isEligibleImage ? AiProcessingType.image : (ext == 'pdf' ? AiProcessingType.pdf : AiProcessingType.text);
+      AiProcessingType aiType = isEligibleImage
+          ? AiProcessingType.image
+          : (ext == 'pdf' ? AiProcessingType.pdf : AiProcessingType.text);
 
       // Trigger the global visual background AI processing shimmer overlay
       globalAiProcessingState.value = AiProcessingData(aiType);
@@ -177,7 +181,9 @@ class ShareReceiverService {
                 .call({'docId': clipRef.id, 'rawText': path})
                 .then((_) => null)
                 .catchError((Object e) {
-                  if (kDebugMode) debugPrint('enhanceText for shared clip failed: $e');
+                  if (kDebugMode) {
+                    debugPrint('enhanceText for shared clip failed: $e');
+                  }
                   return null;
                 }),
           );
@@ -223,8 +229,9 @@ class ShareReceiverService {
           AssetAnalyzerService.analyzeIngestedAsset(docRef.id, mediaUrl, ext);
         }
       } catch (e) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint("Error executing share intent cloud ingest: $e");
+        }
       }
 
       globalAiProcessingState.value = null;

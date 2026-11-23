@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class VisualLookbookScreen extends StatefulWidget {
-  const VisualLookbookScreen({Key? key}) : super(key: key);
+  const VisualLookbookScreen({super.key});
 
   @override
   State<VisualLookbookScreen> createState() => _VisualLookbookScreenState();
@@ -62,21 +62,22 @@ class _VisualLookbookScreenState extends State<VisualLookbookScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Visual Lookbook"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Visual Lookbook"), centerTitle: true),
       body: PageView.builder(
         controller: PageController(viewportFraction: 0.85),
         itemCount: _imageDocs.length,
         itemBuilder: (context, index) {
           final doc = _imageDocs[index];
           final url = doc['fileUrl'] as String?;
-          final summary = doc['aiSummary'] as String? ?? 'No summary available.';
+          final summary =
+              doc['aiSummary'] as String? ?? 'No summary available.';
           final title = doc['fileName'] as String? ?? 'Unknown Asset';
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10.0,
+              vertical: 20.0,
+            ),
             child: Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -115,7 +116,9 @@ class _VisualLookbookScreenState extends State<VisualLookbookScreen> {
                               summary,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 height: 1.5,
                               ),
                             ),

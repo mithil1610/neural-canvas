@@ -19,7 +19,9 @@ class PrivacyHelper {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.65,
@@ -31,7 +33,11 @@ class PrivacyHelper {
               children: [
                 const Text(
                   "AI Integration Consent",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Expanded(
@@ -39,7 +45,11 @@ class PrivacyHelper {
                     physics: const BouncingScrollPhysics(),
                     child: Text(
                       "To summarize and map your notes, Axiom securely processes your documents and text via Google Gemini AI. Data is encrypted in transit and handled strictly in accordance with our Privacy Policy. Do you agree to this processing?",
-                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ),

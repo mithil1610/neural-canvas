@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:neural_canvas/services/ai_service.dart';
+import 'package:neural_canvas/utils/mime_helper.dart';
 import 'package:neural_canvas/models/chat_message.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -146,9 +147,15 @@ class _ChatTabState extends State<ChatTab> {
 
         UploadTask uploadTask;
         if (kIsWeb) {
-          uploadTask = storageRef.putData(attachment.bytes!);
+          uploadTask = storageRef.putData(
+            attachment.bytes!,
+            SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+          );
         } else {
-          uploadTask = storageRef.putFile(File(attachment.path!));
+          uploadTask = storageRef.putFile(
+            File(attachment.path!),
+            SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+          );
         }
 
         final snapshot = await uploadTask;
@@ -275,7 +282,7 @@ class _ChatTabState extends State<ChatTab> {
   Future<void> _handleAttachment() async {
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.media,
+        type: FileType.image, // video isn't supported by Storage rules or analysis
         allowMultiple: false,
       );
 

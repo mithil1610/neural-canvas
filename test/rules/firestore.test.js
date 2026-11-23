@@ -175,6 +175,37 @@ describe('Firestore Security Rules', () => {
       );
     });
 
+    it('prevents client from resetting chat and AI counters', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('users').doc('alice').set({
+          fullName: 'Alice',
+          dailyChatCount: 30,
+          lastChatDate: '2026-11-22',
+          dailyAiOpsCount: 80,
+        });
+      });
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+      await assertFails(aliceDb.collection('users').doc('alice').update({ dailyChatCount: 0 }));
+      await assertFails(aliceDb.collection('users').doc('alice').update({ lastChatDate: '2000-01-01' }));
+      await assertFails(aliceDb.collection('users').doc('alice').update({ dailyAiOpsCount: 0 }));
+    });
+
+    it('prevents client from deleting its profile document (quota reset)', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('users').doc('alice').set({ fullName: 'Alice', dailyUploadCount: 10 });
+      });
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+      await assertFails(aliceDb.collection('users').doc('alice').delete());
+    });
+
+    it('still allows client to delete its own vault items', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('users').doc('alice').collection('knowledge_base').doc('k1').set({ title: 'x' });
+      });
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+      await assertSucceeds(aliceDb.collection('users').doc('alice').collection('knowledge_base').doc('k1').delete());
+    });
+
     it('allows client to update non-protected fields like displayName', async () => {
       await testEnv.withSecurityRulesDisabled(async (context) => {
         await context.firestore().collection('users').doc('alice').set({

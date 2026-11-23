@@ -12,6 +12,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:neural_canvas/services/notification_service.dart';
 import '../../utils/ui_utils.dart';
+import '../../utils/mime_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -64,9 +65,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       UploadTask uploadTask;
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
-        uploadTask = storageRef.putData(bytes);
+        uploadTask = storageRef.putData(
+          bytes,
+          SettableMetadata(contentType: MimeHelper.fromPath(image.name)),
+        );
       } else {
-        uploadTask = storageRef.putFile(File(image.path));
+        uploadTask = storageRef.putFile(
+          File(image.path),
+          SettableMetadata(contentType: MimeHelper.fromPath(image.path)),
+        );
       }
 
       final snapshot = await uploadTask;

@@ -18,6 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:lottie/lottie.dart';
 import '../../utils/ui_utils.dart';
+import '../../utils/mime_helper.dart';
 // import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
 import '../modals/paywall_sheet.dart';
@@ -651,9 +652,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
         UploadTask uploadTask;
         if (kIsWeb) {
           final bytes = await File(filePath).readAsBytes();
-          uploadTask = storageRef.putData(bytes);
+          uploadTask = storageRef.putData(
+            bytes,
+            SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+          );
         } else {
-          uploadTask = storageRef.putFile(File(filePath));
+          uploadTask = storageRef.putFile(
+            File(filePath),
+            SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+          );
         }
 
         final snapshot = await uploadTask;
@@ -796,9 +803,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
       UploadTask uploadTask;
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
-        uploadTask = storageRef.putData(bytes);
+        uploadTask = storageRef.putData(
+          bytes,
+          SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+        );
       } else {
-        uploadTask = storageRef.putFile(File(image.path));
+        uploadTask = storageRef.putFile(
+          File(image.path),
+          SettableMetadata(contentType: MimeHelper.fromPath(image.path)),
+        );
       }
 
       final snapshot = await uploadTask;
@@ -928,7 +941,10 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                           'users/${user.uid}/knowledge_base/$fileName',
                         );
 
-                        final uploadTask = storageRef.putFile(file);
+                        final uploadTask = storageRef.putFile(
+                          file,
+                          SettableMetadata(contentType: 'audio/mp4'),
+                        );
                         final snapshot = await uploadTask;
                         final mediaUrl = await snapshot.ref.getDownloadURL();
 
@@ -2014,35 +2030,15 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () async {
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (_) => const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                              await Future.delayed(
-                                const Duration(milliseconds: 1500),
-                              );
-                              // Fixed legacy database write path alignment
-                              await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(user.uid)
-                                  .set({
-                                    'accountTier': 'Infinite Brain',
-                                  }, SetOptions(merge: true));
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop();
-                                UIUtils.showFloatingSnackBar(
-                                  context,
-                                  'Upgraded to Infinite Brain! Auto-Memory Reels unlocked.',
-                                );
-                              }
-                            }
+                          onPressed: () {
+                            // Upgrades only happen through a real App Store purchase.
+                            // The tier is set server-side by the RevenueCat webhook.
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => const PaywallSheet(),
+                            );
                           },
                           child: const Text(
                             "Upgrade to Infinite Brain",

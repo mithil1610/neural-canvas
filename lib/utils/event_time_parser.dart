@@ -1,5 +1,11 @@
 class EventTimeParser {
-  /// Parses an ISO8601 string or date string returned by the server.
+  /// Parses an event time returned by the server.
+  ///
+  /// Since 1.3.0 the server returns LOCAL wall-clock time with no offset
+  /// ("2026-12-15T10:30:00") or a date only ("2026-12-15"). Dart parses a string
+  /// without an offset as local time, so the reminder lands at the right local
+  /// hour even across daylight-saving changes. Strings with an offset or "Z"
+  /// (older data) are still accepted and converted to local time.
   /// If the event has only a date (e.g., "2026-10-12"), it defaults to 09:00:00 local time.
   /// Returns null if the string cannot be parsed or is 'TBD'.
   static DateTime? parseEventDateTime(String? rawStr) {

@@ -23,7 +23,7 @@ Axiom is an intelligent personal Second Brain and digital memory canvas built wi
                                          │ Admin SDK
                                          ▼
                       ┌───────────────────────────────────────┐
-                      │    Cloud Functions v2 (Node.js 20)    │
+                      │    Cloud Functions v2 (Node.js 22)    │
                       │  - Quotas (Tier limits in transaction)│
                       │  - Server RAG (Capped context)        │
                       │  - Event Extraction (Local timezone)  │
@@ -39,7 +39,7 @@ Axiom is an intelligent personal Second Brain and digital memory canvas built wi
 ```
 
 - **Client**: Flutter (Dart 3.x), Material 3 Dark theme, Local Biometrics (Secure Enclave), Local Notifications (timezone-aware). Zero direct AI keys compiled into client.
-- **Backend**: Firebase Cloud Functions v2 (Node.js 20), enforced App Check, Secret Manager, Firestore Transactions for strict quota enforcement.
+- **Backend**: Firebase Cloud Functions v2 (Node.js 22), enforced App Check, Secret Manager, Firestore Transactions for strict quota enforcement.
 - **Subscriptions**: RevenueCat StoreKit integration (`purchases_flutter`) verified via server-side RevenueCat webhooks and `syncEntitlements` callable.
 - **Security Rules**: Isolated per-user Firestore and Storage rules preventing unauthorized cross-user access and blocking client writes to protected tier and quota counters.
 
@@ -69,7 +69,7 @@ firebase functions:secrets:set REVENUECAT_WEBHOOK_SECRET
 The repository includes pre-configured emulator settings in `firebase.json` for Firestore, Storage, Functions, and Auth.
 
 ### 1. Prerequisites
-- Node.js 20+
+- Node.js 22+
 - Java 17+ (or JRE on system PATH)
 - Firebase CLI (`npm install -g firebase-tools`)
 
@@ -92,7 +92,20 @@ firebase emulators:exec --only firestore,storage "npm --prefix test/rules test"
 
 ---
 
+### App Check debug token (simulator / Xcode builds)
+Debug builds use `AppleDebugProvider`. Run the app once from Xcode, copy the
+`Firebase App Check debug token` line from the console, and add it in
+Firebase Console → App Check → Apps → Manage debug tokens. Without it, every
+Cloud Function call fails with `unauthenticated`/`permission-denied` in debug.
+
+### Cloud Functions tests
+```bash
+cd functions && npm ci && npm test   # helper + end-to-end handler tests, no emulator needed
+```
+
 ## 🚀 Deploying to Production
+
+> Follow `release-1.3.0/DEPLOY.md`: strict Firestore rules ship in Phase B, after 1.3.0 adoption.
 
 ### 1. Deploy Cloud Functions
 ```bash

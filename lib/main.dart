@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:neural_canvas/services/review_service.dart';
 import 'firebase_options.dart';
 
@@ -42,8 +44,13 @@ Future<void> main() async {
     );
 
     if (Platform.isIOS) {
+      // Debug builds (simulator, Xcode runs) use the debug provider: register the
+      // token printed in the Xcode console under App Check > Manage debug tokens.
+      // Release builds use App Attest, falling back to DeviceCheck on older devices.
       await FirebaseAppCheck.instance.activate(
-        providerApple: AppleAppAttestProvider(),
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
       );
 
       await Purchases.configure(
@@ -65,6 +72,7 @@ Future<void> main() async {
             if (kDebugMode) {
               debugPrint("RevenueCat logged in with UID: ${user.uid}");
             }
+            await _syncEntitlementsDaily(user.uid);
           } catch (e) {
             if (kDebugMode) debugPrint("RevenueCat logIn error: $e");
           }
@@ -96,6 +104,22 @@ Future<void> main() async {
   await ReviewService.markAppLaunched();
 
   runApp(const NeuralCanvasApp());
+}
+
+/// Re-reads the subscription tier from RevenueCat (server-side) at most once a
+/// day per user, so the stored tier can't drift from what the user actually pays for.
+Future<void> _syncEntitlementsDaily(String uid) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'entitlements_synced_$uid';
+    final last = prefs.getInt(key) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - last < const Duration(hours: 24).inMilliseconds) return;
+    await FirebaseFunctions.instance.httpsCallable('syncEntitlements').call();
+    await prefs.setInt(key, now);
+  } catch (e) {
+    if (kDebugMode) debugPrint("syncEntitlements on launch failed: $e");
+  }
 }
 
 class NeuralCanvasApp extends StatelessWidget {

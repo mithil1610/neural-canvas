@@ -6,6 +6,8 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:neural_canvas/utils/mime_helper.dart';
 import 'package:neural_canvas/widgets/ai_processing_overlay.dart';
 import 'package:neural_canvas/services/asset_analyzer_service.dart';
 import 'package:neural_canvas/services/auth_service.dart';
@@ -150,24 +152,45 @@ class ShareReceiverService {
       try {
         if (file.type == SharedMediaType.text ||
             file.type == SharedMediaType.url) {
-          await FirebaseFirestore.instance
+          final clipRef = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .collection('knowledge_base')
               .add({
                 'title': 'Shared Clip Note',
+                'fileName': 'Shared Clip Note',
+                'smartTitle': 'Shared Clip Note',
                 'type': 'text',
+                'fileType': 'text',
+                'fileUrl': '',
                 'content': path,
+                // Raw text is searchable right away; enhanceText replaces it with a summary.
+                'aiSummary': path,
                 'createdAt': FieldValue.serverTimestamp(),
                 'uploadedAt': FieldValue.serverTimestamp(),
               });
+
+          // Summarize and index the clip so chat can find it (fire and forget).
+          unawaited(
+            FirebaseFunctions.instance
+                .httpsCallable('enhanceText')
+                .call({'docId': clipRef.id, 'rawText': path})
+                .then((_) => null)
+                .catchError((Object e) {
+                  if (kDebugMode) debugPrint('enhanceText for shared clip failed: $e');
+                  return null;
+                }),
+          );
         } else {
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final storageRef = FirebaseStorage.instance.ref().child(
             'users/${user.uid}/knowledge_base/${timestamp}_$fileName',
           );
 
-          final uploadTask = storageRef.putFile(File(path));
+          final uploadTask = storageRef.putFile(
+            File(path),
+            SettableMetadata(contentType: MimeHelper.fromPath(fileName)),
+          );
           final snapshot = await uploadTask;
           final mediaUrl = await snapshot.ref.getDownloadURL();
 

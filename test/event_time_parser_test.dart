@@ -12,6 +12,28 @@ void main() {
       expect(parsed.month, 10);
     });
 
+    test('parses local wall time with no offset as device-local time', () {
+      // The server returns local wall-clock time, so a 2:30 PM appointment stays
+      // 2:30 PM on the device, including after a daylight-saving change.
+      const dateStr = '2027-03-20T14:30:00';
+      final parsed = EventTimeParser.parseEventDateTime(dateStr);
+      expect(parsed, isNotNull);
+      expect(parsed!.isUtc, isFalse);
+      expect(parsed.year, 2027);
+      expect(parsed.month, 3);
+      expect(parsed.day, 20);
+      expect(parsed.hour, 14);
+      expect(parsed.minute, 30);
+    });
+
+    test('reminder for a post-DST event is 30 minutes before local time', () {
+      final parsed = EventTimeParser.parseEventDateTime('2027-03-20T14:30:00')!;
+      final reminder = EventTimeParser.calculateReminderTime(parsed);
+      expect(reminder.hour, 14);
+      expect(reminder.minute, 0);
+      expect(reminder.day, 20);
+    });
+
     test('parses date-only string and defaults to 09:00:00 local time', () {
       const dateStr = '2026-12-25';
       final parsed = EventTimeParser.parseEventDateTime(dateStr);

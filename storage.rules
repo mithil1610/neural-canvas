@@ -5,7 +5,9 @@ service firebase.storage {
       // Users can only read their own files
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Users can create and update files up to 25MB of allowed MIME types
+      // Users can create and update files up to 25MB of allowed MIME types.
+      // Video is intentionally not allowed: the app doesn't offer video capture, and
+      // Gemini can only analyze files up to ~18 MB inline.
       allow create, update: if request.auth != null && request.auth.uid == userId
         && request.resource.size <= 25 * 1024 * 1024
         && (
@@ -13,6 +15,9 @@ service firebase.storage {
           request.resource.contentType.matches('audio/.*') ||
           request.resource.contentType == 'application/pdf' ||
           request.resource.contentType == 'text/plain' ||
+          request.resource.contentType == 'text/markdown' ||
+          request.resource.contentType == 'text/rtf' ||
+          request.resource.contentType == 'application/rtf' ||
           request.resource.contentType == 'application/msword' ||
           request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         );

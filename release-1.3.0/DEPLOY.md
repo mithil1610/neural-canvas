@@ -1,124 +1,110 @@
-# Axiom 1.3.0 Deployment Guide
+# Axiom 1.3.0 deployment guide
 
-This document contains the exact sequential steps to configure and deploy Axiom 1.3.0 to production.
+Deploy in two phases. **Phase A** is safe while 1.2.3 is still the live App Store version. **Phase B** (strict Firestore rules) waits until most users have updated to 1.3.0.
+
+> ⚠️ **Do not deploy `firestore.rules` from this repo until Phase B.** The 1.2.3 app writes `aiUsageCount` from the device. When the new rules deny that write, 1.2.3 signs the user out ("Security breach or ghost account detected"). Until Phase B, keep the per-user rules that are live now:
+>
+> ```
+> match /users/{userId}/{document=**} {
+>   allow read, write: if request.auth != null && request.auth.uid == userId;
+> }
+> ```
 
 ---
 
-### Step 1: Configure Cloud Secrets in Google Secret Manager
+## Before you start
 
-Firebase Cloud Functions v2 requires three secrets defined in Secret Manager:
+- [ ] The project is on the **Blaze** plan (Cloud Functions and Secret Manager need it).
+- [ ] **Billing is enabled on the Google Cloud project that owns the Gemini API key.** Gemini calls only count as "Paid Services" (prompts not used to improve Google's models) on a project with an active billing account. The privacy label and App Store description depend on this.
+- [ ] A budget alert is set in Google Cloud → Billing → Budgets & alerts.
+- [ ] Firebase CLI is up to date: `npm i -g firebase-tools`.
+- [ ] Tests pass:
+  ```bash
+  (cd functions && npm ci && npm test)          # 17 tests, no emulator needed
+  flutter analyze && flutter test
+  firebase emulators:exec --only firestore,storage "cd test/rules && npm ci && npm test"
+  ```
+
+---
+
+## Phase A: ship 1.3.0 (now)
+
+### A1. Secrets
 
 ```bash
-# 1. Google Gemini API Key for vision, OCR, RAG, and extraction
+# A NEW Gemini key for the server. Don't reuse the key compiled into 1.2.3.
 firebase functions:secrets:set GEMINI_API_KEY
-# Enter your Gemini API key (e.g. AIzaSy...)
 
-# 2. RevenueCat Secret API Key (for server syncEntitlements REST calls)
+# RevenueCat secret API key (Project settings → API keys → Secret, starts with sk_)
 firebase functions:secrets:set REVENUECAT_SECRET_KEY
-# Enter your RevenueCat v1 REST API secret key (e.g. sk_...)
 
-# 3. RevenueCat Webhook Secret Header (for verifying incoming webhooks)
+# Any long random string; paste the same value into RevenueCat in step A4
+openssl rand -hex 24
 firebase functions:secrets:set REVENUECAT_WEBHOOK_SECRET
-# Enter a secure random string (e.g. openssl rand -hex 24)
 ```
 
-Verify secrets are properly bound:
+### A2. Cloud Functions (Node 22)
+
 ```bash
-firebase functions:secrets:access GEMINI_API_KEY
-```
-
----
-
-### Step 2: Deploy Cloud Functions
-
-Deploy the v2 Cloud Functions codebase:
-```bash
+cd functions && npm ci && cd ..
 firebase deploy --only functions
 ```
 
-Functions deployed:
-- `revenuecatWebhook` (v2 HTTPS onRequest)
-- `syncEntitlements` (v2 Callable, App Check enforced)
-- `analyzeAsset` (v2 Callable, App Check enforced)
-- `extractEvents` (v2 Callable, App Check enforced)
-- `chatWithRag` (v2 Callable, App Check enforced)
-- `synthesizeCreation` (v2 Callable, App Check enforced)
-- `generateStoryboard` (v2 Callable, App Check enforced)
-- `generateTitle` (v2 Callable, App Check enforced)
-- `enhanceText` (v2 Callable, App Check enforced)
-- `getEmbedding` (v2 Callable, App Check enforced)
-- `updateChatTitle` (v2 Callable, App Check enforced)
-- `analyzeMedia` (v2 Callable, App Check enforced)
-- `deleteAccount` (v2 Callable, App Check enforced)
+The runtime is Node 22 because Google decommissioned Node 20 on 2026-10-30, so it can no longer deploy. If the CLI asks to delete functions that no longer exist in code, answer **No** unless you recognize them.
 
-Note the deployed URL for `revenuecatWebhook`:
-`https://<region>-<project-id>.cloudfunctions.net/revenuecatWebhook`
+Note the URL it prints for `revenuecatWebhook`.
 
----
+### A3. Storage rules
 
-### Step 3: Deploy Firestore Security Rules
-
-Deploy the hardened, isolated security rules:
-```bash
-firebase deploy --only firestore:rules
-```
-
-Verify in Firebase Console -> Firestore -> Rules that:
-- Global `match /{document=**}` read/write rule is absent.
-- Rule on `/users/{userId}` denies client writes to `accountTier`, `tier`, `aiUsageCount`, `dailyUploadCount`, and `lastUploadDate`.
-
----
-
-### Step 4: Deploy Storage Security Rules
-
-Deploy the storage isolation and file constraint rules:
 ```bash
 firebase deploy --only storage
 ```
 
-Verify in Firebase Console -> Storage -> Rules that uploads are restricted to `users/{userId}/**`, capped at 25MB, and limited to images, audio, PDF, text, and Word documents.
+This is safe for 1.2.3: it uses the same `users/{uid}/…` paths. Uploads must be images, audio, PDF, text, RTF or Word, up to 25 MB.
 
----
+### A4. RevenueCat webhook
 
-### Step 5: Configure RevenueCat Webhook
+1. RevenueCat → Project settings → Integrations → **Webhooks** → Add.
+2. URL: the `revenuecatWebhook` URL from A2.
+3. Authorization header: the exact `REVENUECAT_WEBHOOK_SECRET` value.
+4. Send a test event. Expect HTTP 200 `{"ok":true,"test":true}`. Test events write nothing.
 
-1. Log into your [RevenueCat Dashboard](https://app.revenuecat.com).
-2. Navigate to **Project Settings** -> **Integrations** -> **Webhooks**.
-3. Click **Add Webhook**.
-4. Configure the webhook settings:
-   - **Webhook URL**: `https://<region>-<project-id>.cloudfunctions.net/revenuecatWebhook`
-   - **Authorization Header**: Enter the exact secret string you set in `REVENUECAT_WEBHOOK_SECRET` in Step 1.
-5. Save the integration and send a test event to verify the endpoint returns HTTP 200 `{ "success": true }`.
+Every webhook re-reads the subscriber from the RevenueCat API, so the stored tier always matches RevenueCat. Anonymous (`$RCAnonymousID…`) IDs and IDs that aren't Firebase users are ignored.
 
----
+### A5. App Check
 
-### Step 6: Build & Upload iOS App Archive (IPA)
+- Firebase Console → App Check → Apps → iOS: **App Attest** and **DeviceCheck** are both registered. Release builds use App Attest with a DeviceCheck fallback.
+- Debug builds use the debug provider. Run once from Xcode, copy the debug token from the console log, and add it under **Manage debug tokens**.
+- Every callable already has `enforceAppCheck: true`. Leave enforcement for Firestore and Storage **off** until Phase B.
 
-On your macOS build machine with active Apple Developer signing certificates:
+### A6. Build and upload 1.3.0
 
 ```bash
-# Clean previous build artifacts
-flutter clean
-flutter pub get
-
-# Build production archive
+flutter clean && flutter pub get
 flutter build ipa --release
-
-# Distribute to App Store Connect / TestFlight via Transporter or altool
-xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+# Upload build/ios/ipa/*.ipa with Transporter or Xcode Organizer
 ```
 
 ---
 
-### Rollback Strategy
+## Phase B: lock down Firestore (about 2 weeks after 1.3.0 is live)
 
-If any critical issue arises during deployment:
-1. **Cloud Functions**: Roll back functions to previous revision:
-   ```bash
-   gcloud functions deploy analyzeMedia --source ...
-   ```
-2. **Security Rules**: Revert rules instantly via Firebase Console History or CLI:
-   ```bash
-   firebase firestore:rules:release <PREVIOUS_RELEASE_ID>
-   ```
-3. **App Store**: In App Store Connect, halt phased release or reject the current build before marketing campaigns begin.
+Do this when App Store Connect → Analytics shows most active devices on 1.3.0.
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+These rules block client writes to the tier and quota fields, and block client deletion of `/users/{uid}` (deletion goes through the `deleteAccount` function). Users still on 1.2.3 after this will be signed out the next time the app tries to write those fields, so consider a "please update" prompt first.
+
+Then:
+- App Check → APIs: once metrics show nearly 100% verified requests, turn on **Enforce** for Cloud Firestore and Cloud Storage.
+- Delete the old Gemini API key that shipped inside 1.2.3 (Google Cloud → APIs & Services → Credentials). AI features in 1.2.3 stop working at that point.
+
+---
+
+## Rollback
+
+- **Functions:** redeploy the previous commit (`git checkout <prev> -- functions && firebase deploy --only functions`), or roll back a single function's revision in Cloud Run.
+- **Rules:** Firebase Console → Firestore/Storage → Rules → History → pick the previous version → Publish.
+- **App:** in App Store Connect, pause the phased release, or remove the build from review.

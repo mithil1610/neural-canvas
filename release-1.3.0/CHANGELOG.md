@@ -84,3 +84,48 @@ Platforms: iOS (App Store)
   - `PaywallSheet` displays localized live prices and billing periods fetched from RevenueCat StoreProduct offerings.
   - Displays introductory offers and free trials (e.g. "Free Trial Available") when present in the App Store catalog.
   - Added "Restore Purchases" button with automated server entitlement sync.
+
+---
+
+## Review fixes (applied on top of the changes above)
+
+### Blockers
+- **Cloud Functions runtime:** Node 20 → **Node 22**. Google decommissioned Node 20 on 2026-10-30, so the old config couldn't deploy. Upgraded `firebase-functions` to ^7.4 and `firebase-admin` to ^14.5 (modular imports), and migrated from the deprecated `@google/generative-ai` to `@google/genai` ^3.6.
+- **Free upgrade removed:** the Memory Reels upsell's "Upgrade to Infinite Brain" button wrote `accountTier` directly with no purchase. It now opens the real `PaywallSheet`.
+- **Deploy order:** DEPLOY.md is now two phases. Strict Firestore rules wait until 1.3.0 adoption, because 1.2.3 signs users out when its client-side counter write is denied.
+- **Embeddings:** `text-embedding-004` was shut down on 2026-01-14. Now uses `gemini-embedding-001` (768 dimensions).
+- **Permanent free-tier lockout removed:** the client blocked free users after 200 lifetime AI actions, and nothing reset that count. Limits are now server-side daily counters only (UTC day).
+
+### Server (functions/)
+- **Retrieval (RAG):** chat ranks up to 300 vault items by embedding similarity plus title/keyword matches, instead of using only the 15 most recent. It always includes the 2 newest items, caps context at 8,000 characters, and backfills embeddings for older items lazily (8 per request).
+- **Embeddings saved** on every analyzed item (`analyzeAsset`, `enhanceText`).
+- **No arbitrary URL fetches:** `analyzeAsset`, `chatWithRag` and `analyzeMedia` accept only the caller's own Storage objects (a `users/{uid}/…` path, or a Firebase download URL resolved to one) and download them through the Admin SDK. Files are capped at 18 MB.
+- **Correct MIME types:** each file's stored `contentType` is used, with the extension as fallback. `.docx` is converted to text with `mammoth`; text and RTF are sent as text; `.doc` returns a "re-save as .docx/PDF" message.
+- **Quotas:** a single `TIER_CONFIG` with `upload`, `chat` and `aiops` daily limits. Every AI callable now counts against one.
+- **Server-side plan checks:** `synthesizeCreation` requires Creation Engine or higher; `generateStoryboard` requires Infinite Brain.
+- **RevenueCat webhook:**
+  - Uses a timing-safe auth check.
+  - `TEST` events return 200 without writing.
+  - Ignores `$RCAnonymousID` IDs and IDs that aren't Firebase users.
+  - Re-reads the subscriber from the RevenueCat API on every event, which handles expirations, both-plan cases and transfers.
+- **Event extraction:** asks for local wall-clock time with no offset (DST-safe) and normalizes model output. All-day events are stored as `T09:00:00` with `allDay: true`.
+- **`deleteAccount`:** uses `db.recursiveDelete()`, which has no 500-document batch limit and covers any subcollection depth.
+- **`setGlobalOptions({ maxInstances: 20 })`** as a cost guard.
+- **Tests:** `functions/test/` has 17 tests (helpers, plus end-to-end handler flows with in-memory fakes). Run with `npm test`.
+
+### Rules
+- Firestore: `dailyChatCount`, `lastChatDate`, `dailyAiOpsCount`, `lastAiOpsDate` and `tierSyncedAt` are now server-only. Client delete of `/users/{uid}` is blocked, since it would reset quotas. Added tests.
+- Storage: allows `text/markdown`, `text/rtf` and `application/rtf`. Video stays blocked on purpose.
+
+### App (lib/)
+- App Check uses `AppleDebugProvider` in debug builds and `AppleAppAttestWithDeviceCheckFallbackProvider` in release.
+- `syncEntitlements` runs at most once a day after sign-in. This corrects tiers granted by the old free-upgrade button.
+- Every Storage upload sets an explicit `contentType` (new `lib/utils/mime_helper.dart`).
+- The chat attachment picker is images only (no video).
+- Shared text clips get `aiSummary` and are summarized and indexed with `enhanceText`, so chat can find them.
+- Event parser docs and tests cover local wall time and the March 2027 DST change.
+
+### Docs
+- `DEPLOY.md`: two-phase rollout, billing prerequisite for Gemini, App Check debug tokens.
+- `PRIVACY_LABEL.md`: adds Crash Data, Analytics (Device ID, Product Interaction, Coarse Location), and items to remove from the live label. Uses Apple purpose names only; corrects the Gemini data-use claim.
+- `WHATS_NEW.txt`: rewritten to describe only shipped changes.

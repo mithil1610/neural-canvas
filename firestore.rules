@@ -2,30 +2,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Fields only Cloud Functions may write (subscription tier and usage quotas).
+    function serverFields() {
+      return [
+        'accountTier', 'tier', 'tierSyncedAt', 'aiUsageCount',
+        'dailyUploadCount', 'lastUploadDate',
+        'dailyChatCount', 'lastChatDate',
+        'dailyAiOpsCount', 'lastAiOpsDate'
+      ];
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      // Users can only read their own document
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
 
-      // On create, user cannot set server-protected fields:
-      // accountTier, tier, aiUsageCount, dailyUploadCount, lastUploadDate
-      allow create: if request.auth != null && request.auth.uid == userId
-                    && !request.resource.data.keys().hasAny([
-                      'accountTier', 'tier', 'aiUsageCount', 'dailyUploadCount', 'lastUploadDate'
-                    ]);
+      // The client may create and edit its own profile, but never the server fields.
+      allow create: if isOwner(userId)
+                    && !request.resource.data.keys().hasAny(serverFields());
+      allow update: if isOwner(userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields());
 
-      // On update, client cannot alter or introduce server-protected fields
-      allow update: if request.auth != null && request.auth.uid == userId
-                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                      'accountTier', 'tier', 'aiUsageCount', 'dailyUploadCount', 'lastUploadDate'
-                    ]);
+      // No client delete: deleting the profile would reset quotas. Account deletion
+      // goes through the deleteAccount Cloud Function, which uses the Admin SDK.
+      allow delete: if false;
 
-      // Client deletion of user document
-      allow delete: if request.auth != null && request.auth.uid == userId;
-
-      // Subcollections strictly: must have at least one subcollection segment
-      // so it does not match /users/{userId} itself
+      // Everything under the profile (knowledge_base, chats/messages, upcoming_events, ...).
       match /{collectionId}/{docId=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
     }
   }
